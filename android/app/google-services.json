@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "594671809269",
+    "project_id": "sulibary",
+    "storage_bucket": "sulibary.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:594671809269:android:395049c31d943e8ee10bbc",
+        "android_client_info": {
+          "package_name": "com.flutterthailand.sulib"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "594671809269-pp1q0o392eekbadj12i4ur817ljdu6bc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBg0jQ_mLteJZ5KEGSzeIyT20WFY4P-O30"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "594671809269-pp1q0o392eekbadj12i4ur817ljdu6bc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
