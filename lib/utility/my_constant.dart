@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class MyContant {
-  static String appName = "SU libery";
+  static String appName = "SU libary";
 
   static Color primary = const Color(0xff81E9A8);
   static Color dark = const Color(0xffB87878);

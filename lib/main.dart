@@ -1,15 +1,20 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:sulib/states/authen.dart';
 import 'package:sulib/states/create_account.dart';
 import 'package:sulib/utility/my_constant.dart';
 
 Map<String, WidgetBuilder> map = {
-  MyContant.routeAuthen:(BuildContext context)=> const Authen(),
-  MyContant.routeCreateAccount:(BuildContext context)=> const CreateAccount(), 
+  MyContant.routeAuthen: (BuildContext context) => const Authen(),
+  MyContant.routeCreateAccount: (BuildContext context) => const CreateAccount(),
 };
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp().then((value) {
+    runApp(const MyApp());
+  });
+  
 }
 
 class MyApp extends StatelessWidget {
@@ -20,9 +25,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-     routes: map,
-     title: MyContant.appName,
-     initialRoute: MyContant.routeAuthen,
+      routes: map,
+      title: MyContant.appName,
+      initialRoute: MyContant.routeAuthen,
     );
   }
 }

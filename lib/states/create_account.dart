@@ -1,6 +1,11 @@
 // ignore_for_file: avoid_print
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:sulib/mdels/user_model.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/utility/my_dialog.dart';
 import 'package:sulib/widgets/show_button.dart';
@@ -55,6 +60,7 @@ class _CreateAccountState extends State<CreateAccount> {
                           'Have space ?', 'Please Fill Every Blank');
                     } else {
                       print('no space');
+                      processCreateAcconut();
                     }
                   },
                   label: 'Create New Account',
@@ -66,5 +72,29 @@ class _CreateAccountState extends State<CreateAccount> {
         ),
       ),
     );
+  }
+
+  Future<void> processCreateAcconut() async {
+    await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(
+      email: email!,
+      password: password!,
+    )
+        .then((value) async {
+      String uid = value.user!.uid;
+      print('uid ==> $uid');
+
+      UserModel model =
+          UserModel(name: name!, email: email!, password: password!);
+
+      await FirebaseFirestore.instance
+          .collection('user')
+          .doc(uid)
+          .set(model.toMap())
+          .then((value) => Navigator.pop(context));
+
+    }).catchError((onError) {
+      MyDialog(context: context).normalDialog(onError.code, onError.message);
+    });
   }
 }
