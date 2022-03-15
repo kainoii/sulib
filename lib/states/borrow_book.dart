@@ -71,8 +71,8 @@ class _BorrowBookState extends State<BorrowBook> {
                 height: 16,
               ),
               newDetail(title: 'ผู้เขียน :', detail: bookModel!.author),
-              newDetail(title: 'Publisher :', detail: bookModel!.publisher),
-              newDetail(title: 'Category :', detail: bookModel!.bookCatetory),
+              newDetail(title: 'สำนักพิม :', detail: bookModel!.publisher),
+              newDetail(title: 'หมวดหมู่ :', detail: bookModel!.bookCatetory),
               newDetail(title: 'Code :', detail: bookModel!.bookCode),
               newDetail(title: 'จำนวนหน้า :', detail: bookModel!.numberOfPage),
               newDetail(title: 'Detail :', detail: bookModel!.detail),
@@ -164,7 +164,7 @@ class _BorrowBookState extends State<BorrowBook> {
 
         if (status) {
           MyDialog(context: context)
-              .normalDialog('ไม่สามามารถยืมได้', 'มี หนังสือค้างส่งอยู่');
+              .normalDialog('ไม่สามามารถยืมได้', 'กรุณาคืนหนังสือที่ยืมอยู่ก่อน');
         } else {
           await FirebaseFirestore.instance
               .collection('book')
@@ -194,7 +194,7 @@ class _BorrowBookState extends State<BorrowBook> {
                   });
             } else {
               MyDialog(context: context).normalDialog(
-                  'หนังสือไม่ว่าง', 'กรุณาจองไว้ หรือ ไปเลือกเล่มอืนแทน');
+                  'หนังสือไม่ว่าง', 'ท่านสามารถจองไว้ก่อนได้เลย');
             }
           });
         }
@@ -250,7 +250,7 @@ class _BorrowBookState extends State<BorrowBook> {
       print('value ==>> ${value.docs}');
       if (value.docs.isEmpty) {
         MyDialog(context: context)
-            .normalDialog('หนังสือว่าง ?', 'สามารถยืมได้เลยไม่ต้อง จอง คะ');
+            .normalDialog('หนังสือว่าง ?', 'สามารถยืมได้เลย!!!');
       } else {
         for (var item in value.docs) {
           BorrowBookModel borrowBookModel =

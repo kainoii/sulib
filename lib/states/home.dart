@@ -10,7 +10,6 @@ import 'package:sulib/widgets/show_form.dart';
 import 'package:sulib/widgets/show_logo.dart';
 import 'package:sulib/widgets/show_text.dart';
 
-
 class Home extends StatefulWidget {
   const Home({
     Key? key,
@@ -115,7 +114,7 @@ class _HomeState extends State<Home> {
                           height: 150,
                           child: CachedNetworkImage(
                               errorWidget: (context, url, error) =>
-                                   const Showlogo(),
+                                  const Showlogo(),
                               imageUrl: forYouBookModels[index].cover),
                         ),
                         ShowText(text: cutWord(forYouBookModels[index].title)),
@@ -181,7 +180,7 @@ class _HomeState extends State<Home> {
               shrinkWrap: true,
               itemCount: newBookModels.length,
               itemBuilder: (context, index) => InkWell(
-                 onTap: () => Navigator.push(
+                onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => BorrowBook(
@@ -217,14 +216,16 @@ class _HomeState extends State<Home> {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         ShowForm(
-          width: 200,
-          label: 'Search',
+          width: 300,
+          label: 'ค้นหาหนังสือ...',      
           changeFunc: (String string) {},
         ),
-        ShowButton(
-          label: 'Search',
-          pressFunc: () {},
-        ),
+        
+        // IconButton(onPressed: () {}, icon: const Icon(Icons.search),)
+        // ShowButton(
+        //   label: 'Search',
+        //   pressFunc: () {},
+        // ),
       ],
     );
   }
