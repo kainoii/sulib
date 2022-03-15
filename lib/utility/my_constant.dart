@@ -6,9 +6,11 @@ class MyContant {
   static Color primary = const Color(0xff81E9A8);
   static Color dark = const Color(0xffB87878);
   static Color light = const Color(0xffCFF9DD);
+  static Color black = const Color.fromARGB(255, 3, 3, 3);
 
   static String routeAuthen = '/authen';
   static String routeCreateAccount = '/createAccount';
+  static String routeMyService = '/myService';
   BoxDecoration primaryBox() => BoxDecoration(color: primary.withOpacity(0.75));
 
   TextStyle h1Style() => TextStyle(
@@ -28,4 +30,10 @@ class MyContant {
         fontSize: 14,
         fontWeight: FontWeight.normal,
       );
+  TextStyle h4Style() => TextStyle(
+        color: black,
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+      );
+
 }

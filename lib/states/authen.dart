@@ -21,6 +21,7 @@ class Authen extends StatefulWidget {
 
 class _AuthenState extends State<Authen> {
   String? email, password;
+  bool isPasswordVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -77,19 +78,81 @@ class _AuthenState extends State<Authen> {
         },
       );
 
-  ShowForm newUserName() {
-    return ShowForm(
-      label: 'Username :',
-      changeFunc: (String value) => email = value.trim(),
-    );
-  }
+  Widget newUserName() =>(
+    Container(
+      margin: const EdgeInsets.only(top: 16),
+      width: 250,
+      height: 40,
+      child: TextFormField(
+        onChanged: (String value) => email = value.trim(),
+        decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.mail),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            fillColor: Colors.white.withOpacity(0.5),
+            filled: true,
+            label: const ShowText(text: "E_mail :"),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: MyContant.dark),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: MyContant.light),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            ),
+            
+      ),
+    )
+  );
 
-  ShowForm newPassWord() {
-    return ShowForm(
-      label: 'Password :',
-      changeFunc: (String value) => password = value.trim(),
-    );
-  }
+  // Container newPassWord() {
+  //   return Container( margin: const EdgeInsets.only(top: 16),
+  //     width:  250,
+  //     height: 40,
+  //     child: TextFormField(),
+
+  //     );
+  // }
+  // ShowForm newPassWord() {
+  //   return ShowForm(
+  //     label: 'Password :',
+  //     changeFunc: (String value) => password = value.trim(),
+  //   );
+  // }
+  Widget newPassWord() => (
+     Container(
+      margin: const EdgeInsets.only(top: 16),
+      width: 250,
+      height: 40,
+      child: TextFormField(
+        onChanged: (String value) => password = value.trim(),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.lock),
+            suffixIcon: IconButton(
+                icon: isPasswordVisible 
+                ? const Icon(Icons.visibility_off,) 
+                : const Icon(Icons.visibility), 
+                onPressed: () => setState(() => isPasswordVisible = !isPasswordVisible),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            fillColor: Colors.white.withOpacity(0.5),
+            filled: true,
+            label: const ShowText(text: "Password :"),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: MyContant.dark),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: MyContant.light),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            ),
+             obscureText: !isPasswordVisible,
+      ),
+    )
+  );
 
   ShowText newappname() {
     return ShowText(
