@@ -3,10 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:sulib/mdels/book-model.dart';
 import 'package:sulib/states/borrow_book.dart';
+import 'package:sulib/states/search_page.dart';
 import 'package:sulib/states/show_progress.dart';
 import 'package:sulib/states/show_title.dart';
-import 'package:sulib/widgets/show_button.dart';
-import 'package:sulib/widgets/show_form.dart';
+import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/widgets/show_logo.dart';
 import 'package:sulib/widgets/show_text.dart';
 
@@ -20,13 +20,28 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  var forYouBookModels = <BookModel>[]; // for สำหรับคุณ
+
+  TextEditingController controllerSearch = TextEditingController();
+  PageController controllerPage = PageController(initialPage: 0);
+
+  int currentPageIndex = 0;
+
+  var forYouBookModels = <BookModel>[]; // for สำหรับคุณ // all books in here.
   var faveritBookModels = <BookModel>[]; // for ยอดนิยม
   var newBookModels = <BookModel>[]; // for มาใหม่
+
+  var searchBookModels = <BookModel>[];
 
   var docForYouBooks = <String>[];
   var docFaveritBooks = <String>[];
   var docNewBooks = <String>[];
+
+  @override
+  void dispose() {
+    controllerPage.dispose();
+    controllerSearch.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -45,6 +60,8 @@ class _HomeState extends State<Home> {
 
         BookModel bookModel = BookModel.fromMap(item.data());
         forYouBookModels.add(bookModel);
+        
+        searchBookModels.add(bookModel);
 
         await FirebaseFirestore.instance
             .collection('book')
@@ -52,7 +69,7 @@ class _HomeState extends State<Home> {
             .collection('borrow')
             .get()
             .then((value) {
-          if ((value.docs.isNotEmpty)) {
+          if (value.docs.isNotEmpty) {
             faveritBookModels.add(bookModel);
             docFaveritBooks.add(docBook);
           } else {
@@ -69,19 +86,60 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            newSearch(),
-            const ShowTitle(title: 'สำหรับคุณ'),
-            newForYouListView(),
-            const ShowTitle(title: 'ยอดนิยม'),
-            newFaveritListView(),
-            const ShowTitle(title: 'มาใหม่'),
-            newListView(),
-          ],
+      body: ListView(
+        shrinkWrap: true,
+        children: [
+
+          searchButton(),
+
+          const ShowTitle(title: 'สำหรับคุณ'),
+          newForYouListView(),
+          const ShowTitle(title: 'ยอดนิยม'),
+          newFaveritListView(),
+          const ShowTitle(title: 'มาใหม่'),
+          newListView(),
+        ],
+      )
+    );
+  }
+
+  Widget searchButton() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(_createRoute(SearchPage(books: forYouBookModels, booksId: docForYouBooks,)));
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8 , horizontal: 32),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(width: 1, color: MyContant.dark)
+            ),
+            child: const ShowText(text: 'ค้นหาชื่อหนังสือ'),
+          ),
         ),
       ),
+    );
+  }
+
+  Route _createRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.ease;
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        );
+      },
     );
   }
 
@@ -215,11 +273,11 @@ class _HomeState extends State<Home> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        ShowForm(
-          width: 300,
-          label: 'ค้นหาหนังสือ...',      
-          changeFunc: (String string) {},
-        ),
+        // ShowForm(
+        //   width: 300,
+        //   label: 'ค้นหาหนังสือ...',      
+        //   changeFunc: (String string) {},
+        // ),
         
         // IconButton(onPressed: () {}, icon: const Icon(Icons.search),)
         // ShowButton(
