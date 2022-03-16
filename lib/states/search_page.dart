@@ -26,7 +26,7 @@ class _SearchPageState extends State<SearchPage> {
   final List<BookModel> books;
   final List<String> booksId;
 
-  List<BookModel> selectBooks = [];
+  List<BookModel> queryBooks = [];
 
   _SearchPageState({required this.books, required this.booksId});
 
@@ -42,7 +42,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   void initState() {
     super.initState();
-    selectBooks = books;
+    queryBooks = books;
   }
 
   @override
@@ -73,12 +73,12 @@ class _SearchPageState extends State<SearchPage> {
           String textSearch = value;
           if (textSearch.isEmpty) {
             setState(() {
-              selectBooks = books;
+              queryBooks = books;
             });
           } else {
             setState(() {
-              selectBooks = [];
-              selectBooks = books.where((map) => map.title.contains(textSearch)).toList();
+              queryBooks = [];
+              queryBooks = books.where((map) => map.title.toUpperCase().contains(textSearch.toUpperCase())).toList();
               // print(selectBooks.length);
             });
           }
@@ -106,25 +106,30 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget booksItems() {
     return Expanded(
-      child: (selectBooks.isEmpty)?
+      child: (queryBooks.isEmpty)?
       const Center(
         child: ShowText(text: 'ไม่มีชื่อหนังสือตามที่ค้นหา')
       ) 
       : ListView.builder(
         shrinkWrap: true,
-        itemCount: selectBooks.length,
+        itemCount: queryBooks.length,
         itemBuilder: (context, index) {
-          BookModel book = selectBooks[index];
+          BookModel book = queryBooks[index];
           return Padding(
-            padding: EdgeInsets.only(left: 8, right: 8, top: 4, bottom: (index == selectBooks.length - 1) ? 16 : 4),
+            padding: EdgeInsets.only(left: 8, right: 8, top: 4, bottom: (index == queryBooks.length - 1) ? 16 : 4),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () {
                 //Todo Something
+
+                int indexOfBooks = books.indexOf(queryBooks[index]);
+
+                print(indexOfBooks);
+
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(builder: (context) => BorrowBook(
-                    bookModel: books[index],
-                    docBook: booksId[index],
+                    bookModel: books[indexOfBooks],
+                    docBook: booksId[indexOfBooks],
                   ))
                 );
               },

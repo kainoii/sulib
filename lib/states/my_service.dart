@@ -98,6 +98,7 @@ class _MyServiceState extends State<MyService> {
 
         var diff = nearestDateTime.difference(currentDateTime);
         print("เวลาที่ diff กัน --->>>> ${diff.inDays}");
+        
 
         if (diff.inDays > 0 && diff.inDays <= 2) {
           Duration duration = Duration(seconds: 5);
