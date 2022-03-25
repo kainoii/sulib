@@ -8,6 +8,7 @@ import 'package:sulib/mdels/reserve_model.dart';
 // import 'package:sulib/states/ecard.dart';
 import 'package:sulib/states/history.dart';
 import 'package:sulib/states/home.dart';
+import 'package:sulib/states/review.dart';
 // import 'package:sulib/states/noti.dart';
 // import 'package:sulib/states/review.dart';
 import 'package:sulib/states/show_list_recive_book.dart';
@@ -27,7 +28,7 @@ class _MyServiceState extends State<MyService> {
   var titles = <String>[
     'Home',
     'History',
-    // 'Review',
+    'Review',
     // 'Ecard',
     // 'Noti',
   ];
@@ -35,7 +36,7 @@ class _MyServiceState extends State<MyService> {
   var iconDatas = <IconData>[
     Icons.home,
     Icons.history,
-    // Icons.reviews,
+    Icons.reviews,
     // // Icons.card_membership,
     // // Icons.notifications,
   ];
@@ -43,6 +44,7 @@ class _MyServiceState extends State<MyService> {
   var widgets = <Widget>[
     const Home(),
     const History(),
+    const Review(),
     // const Review(),
     // // const Ecard(),
     // // const Noti(),
