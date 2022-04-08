@@ -10,6 +10,9 @@ import 'package:sulib/mdels/book-review-model.dart';
 import 'package:sulib/mdels/borrow_book_model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
 import 'package:sulib/mdels/reserve_model.dart';
+import 'package:sulib/mdels/review-model.dart';
+import 'package:sulib/mdels/user_model.dart';
+import 'package:sulib/states/review.dart';
 import 'package:sulib/states/show_list_recive_book.dart';
 import 'package:sulib/states/show_progress.dart';
 import 'package:sulib/utility/my_constant.dart';
@@ -33,15 +36,49 @@ class BorrowBook extends StatefulWidget {
 
 class _BorrowBookState extends State<BorrowBook> {
 
-  List<BookReviewModel> reviews = [
-    BookReviewModel(nameReview: 'John Maven', rate: 5 , date: DateTime.now(), description: 'สนุกมากครับ'),
-    BookReviewModel(nameReview: 'Somchai RukSanuk', rate: 2.5 , date: DateTime.now(), description: 'อ่านแล้วอยากอ่านอีกดีครับ'),
-    BookReviewModel(nameReview: 'สมชาย ชาตรี', rate: 3 , date: DateTime.now(), description: 'dlkfgjeriogfhaeogfuafuifhwifawefiufhaweiufnwaifuewhfiuaefhdiwjdfhawiufygawefuyiawegfuiayfghawefiuhawfuwehfiuwhfuweifhaweufgaweyugf'),
-    BookReviewModel(nameReview: 'Jaidee Pipak', rate: 0 , date: DateTime.now(), description: ''),
-    BookReviewModel(nameReview: 'Jaidee Pipak', rate: 1.5 , date: DateTime.now(), description: ''),
-    BookReviewModel(nameReview: 'Jaidee Pipak', rate: 2 , date: DateTime.now(), description: ''),
-    BookReviewModel(nameReview: 'Jaidee Pipak', rate: 4.5 , date: DateTime.now(), description: 'dlkfgjeriogfhaeogfuafuifhwifawefiufhaweiufnwaifuewhfiuaefhdiwjdfhawiufygawefuyiawegfuiayfghawefiuhawfuwehfiuwhfuweifhaweufgaweyugf'),
-  ];
+  final bookForReviewList = <BorrowBookModel>[];
+  final userReviewList = <UserModel>[];
+
+
+  Future<List<BorrowBookModel>> getReviewFromThisBook () async {
+    List<BorrowBookModel> books = [];
+    bookForReviewList.clear();
+    final value = await FirebaseFirestore.instance
+                      .collection('book')
+                      .doc(docBook)
+                      .collection('borrow')
+                      .where('review', isNull: false)
+                      .get();
+    if (value.docs.isNotEmpty) {
+      for(var item in value.docs) {
+        BorrowBookModel booksReviewbyUser = BorrowBookModel.fromMap(item.data());
+        bookForReviewList.add(booksReviewbyUser);
+        books.add(booksReviewbyUser);
+        print("userId ====> ${ booksReviewbyUser.docUser }");
+      }
+    }
+    bookForReviewList.forEach((element) { 
+      print("UserIdReview =====> ${ element.docUser }");
+    });
+    return books;
+  }
+
+  Future<List<UserModel>> getUserData(List<BorrowBookModel> docUserId) async {
+    userReviewList.clear();
+    for (var item in docUserId) {
+      String userId = item.docUser;
+      await FirebaseFirestore.instance
+                  .collection('user')
+                  .doc(userId)
+                  .get()
+                  .then((value) {
+                    UserModel user = UserModel.fromMap(value.data()!);
+                    userReviewList.add(user);
+                  });
+
+    }
+    return userReviewList;
+  }
 
   BookModel? bookModel;
   DateTime currentDateTime = DateTime.now();
@@ -130,38 +167,82 @@ class _BorrowBookState extends State<BorrowBook> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RichText(
-          text: TextSpan(
-            
-            text: 'คะแนนและรีวิว',
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+            'คะแนนและรีวิว',
               style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: MyContant.black,
+              ),
             ),
-            children: [
-              
-              TextSpan(
-                text: '\t(ทั้งหมด ${ reviews.length } รายการ)',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  fontStyle: FontStyle.italic,
-                )
+            const SizedBox(width: 16,),
+            FutureBuilder(
+                future: getReviewFromThisBook(),
+                builder: (BuildContext context,AsyncSnapshot<List<BorrowBookModel>> snapshot) {
+                  if (!snapshot.hasData) {
+                    return Text(
+                      '( กำลังดาวน์โหลด.... )',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        fontStyle: FontStyle.italic,
+                      )
+                    );
+                  }
+                  
+                  return Text(
+                    '(ทั้งหมด ${ snapshot.data!.length } รายการ)',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: FontStyle.italic,
+                    )
+                  );
+                }
               )
-            ]
-          ),
+          ],
         ),
         const SizedBox(height: 8,),
-        ListView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          primary: false,
-          itemCount: reviews.length,
-          itemBuilder: (context, index) {
-            BookReviewModel bookReviewModel = reviews[index];
-            return buildReviewItems(bookReviewModel);
+        FutureBuilder(
+          future: getReviewFromThisBook(),
+          builder: (BuildContext context,AsyncSnapshot<List<BorrowBookModel>> snapshotReViewByUser) {
+            if (!snapshotReViewByUser.hasData) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: CircularProgressIndicator(color: Colors.teal,),
+              );
+            }
+            List<BorrowBookModel> reviewByUsers = snapshotReViewByUser.data!;
+            return FutureBuilder(
+              future: getUserData(reviewByUsers),
+              builder: (BuildContext context, AsyncSnapshot<List<UserModel>> snapshotUser) {
+                if (!snapshotUser.hasData) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: CircularProgressIndicator(color: Colors.teal,),
+                  );
+                }
+                List<UserModel> userList = snapshotUser.data!;
+                return ListView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  primary: false,
+                  itemCount: reviewByUsers.length,
+                  itemBuilder: (context, index) {
+                    
+                    BorrowBookModel reviewByUser = reviewByUsers[index];
+                    UserModel user = userList[index];
+
+                    return buildReviewItems(reviewByUser, user);
+                  },
+                );
+              },
+            );
           },
         )
 
@@ -169,14 +250,15 @@ class _BorrowBookState extends State<BorrowBook> {
     ),
   );
 
-  Widget buildReviewItems(BookReviewModel bookReviewModel) {
+  Widget buildReviewItems(BorrowBookModel reviewByUser, UserModel user) {
+    DateTime reviewDate = reviewByUser.review!.date!.toDate();
     return Padding(
       padding:const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            bookReviewModel.nameReview,
+            user.name,
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
@@ -188,7 +270,7 @@ class _BorrowBookState extends State<BorrowBook> {
             child: Row(
               children: [
                 RatingBarIndicator(
-                  rating: bookReviewModel.rate,
+                  rating: reviewByUser.review!.rate!,
                   direction: Axis.horizontal,
                   itemCount: 5,
                   itemSize: 20,
@@ -200,7 +282,7 @@ class _BorrowBookState extends State<BorrowBook> {
                 ),
                 const SizedBox(width: 16,),
                 Text(
-                  '${ bookReviewModel.date.day }/${ bookReviewModel.date.month }/${ bookReviewModel.date.year }',
+                  '${ reviewDate.day }/${ reviewDate.month }/${ reviewDate.year }',
                   style: TextStyle(
                     fontSize: 17,
                     color: MyContant.black,
@@ -213,7 +295,7 @@ class _BorrowBookState extends State<BorrowBook> {
           ),
           const SizedBox(width: 16,),
           Text(
-            bookReviewModel.description,
+            reviewByUser.review!.description!,
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w400,
@@ -331,7 +413,8 @@ class _BorrowBookState extends State<BorrowBook> {
         docBook: docBook!,
         startDate: Timestamp.fromDate(currentDateTime),
         endDate: Timestamp.fromDate(endDateTime!),
-        status: true);
+        status: true,
+      );
 
     print('borrowUserModel ===>> ${borrowUserModel.toMap()}');
 

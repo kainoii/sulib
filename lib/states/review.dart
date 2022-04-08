@@ -1,4 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:sulib/mdels/book-model.dart';
+import 'package:sulib/mdels/borrow_book_model.dart';
+import 'package:sulib/mdels/borrow_user_model.dart';
 import 'package:sulib/mdels/my_review_model.dart';
 import 'package:sulib/states/review_detail.dart';
 import 'package:sulib/states/show_title.dart';
@@ -14,24 +21,86 @@ class Review extends StatefulWidget {
 
 class _ReviewState extends State<Review> {
 
-  List<MyReview> myReviews = [
-    MyReview(title: 'หนังสือเล่มที่ 1', bookId: '123456', date: DateTime.now()),
-    MyReview(title: 'หนังสือเล่มที่ 2', bookId: '123456', date: DateTime.now()),
-    MyReview(title: 'หนังสือเล่มที่ 3', bookId: '123456', date: DateTime.now()),
-    MyReview(title: 'หนังสือเล่มที่ 4', bookId: '123456', date: DateTime.now()),
-  ];
+
+  String? docUser;
+
+  bool isLoading = false;
+
+  List<String> docUserBorrowBookId = [];
+
+  List<BorrowUserModel> bookReviewsByUser = [];
+  List<BookModel> books = [];
+  List<String> docBookIds = [];
+
+  Stream<List<BorrowUserModel>> getUserBooksReviews() async* {
+    docUserBorrowBookId.clear();
+    bookReviewsByUser.clear();
+    final value = await FirebaseFirestore.instance
+                      .collection('user')
+                      .doc(docUser)
+                      .collection('borrow')
+                      .where('status', isEqualTo: false)
+                      .where('review', isNull: true)
+                      .get();
+    if (value.docs.isNotEmpty) {
+      for (var item in value.docs) {
+        docUserBorrowBookId.add(item.id);
+        print("Book Id -> ${ item.id }");
+        final borrowUserModel = BorrowUserModel.fromMap(item.data());
+        print("BookReviewUser -> ${ borrowUserModel.docBook }");
+        bookReviewsByUser.add(borrowUserModel);
+      }
+    }
+    
+    yield bookReviewsByUser;
+  }
+
+  Future<List<BookModel>> getBooks(List<String> documentBooks) async {
+    books.clear();
+    for (var docBooks in documentBooks) {
+      await FirebaseFirestore.instance
+                .collection('book')
+                .doc(docBooks)
+                .get()
+                .then((value) {
+              final bookModel = BookModel.fromMap(value.data()!);
+              books.add(bookModel);
+              print("Book title -> ${ bookModel.title }");
+            });
+    }
+    return books;
+  }
+
+  Future<void> findUserLogin() async {
+      setState(() {
+        isLoading = true;
+      });
+    await FirebaseAuth.instance.authStateChanges().listen((event) {
+      setState(() {
+        docUser = event!.uid;
+        print('find User finish');
+      });
+    });
+    setState(() {
+        isLoading = false;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    myReviews = List.from(myReviews.reversed);
+    findUserLogin();
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 16, top: 16, right: 16),
-      child: Column(
+      child: (isLoading)
+      ? const Center(
+        child: CircularProgressIndicator(color: Colors.teal,),
+      ) 
+      : Column(
         children: [
           
           const Padding(
@@ -40,23 +109,48 @@ class _ReviewState extends State<Review> {
           ),
 
           Expanded(
-            child: ( myReviews.isNotEmpty ) 
-            ? ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: myReviews.length,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemBuilder: (context, index) {
-                MyReview review = myReviews[index];
-                return Padding(
-                  padding: EdgeInsets.only(top: (index == 0) ? 0 : 8 , bottom: (index == myReviews.length - 1) ? 0 : 8),
-                  child: buildReviewBooksItem(review)
+            child: StreamBuilder(
+              stream: getUserBooksReviews(),
+              builder: (BuildContext context,AsyncSnapshot<List<BorrowUserModel>> snapshotBookReviews) {
+                if (!snapshotBookReviews.hasData) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.teal,),
+                  );
+                }
+                for (var element in bookReviewsByUser) {
+                  docBookIds.add(element.docBook);
+                }
+                return FutureBuilder(
+                  future: getBooks(docBookIds),
+                  builder: (BuildContext context,AsyncSnapshot<List<BookModel>> snapshotBooks) {
+                    if (!snapshotBooks.hasData) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.green,),
+                      );
+                    }
+                    return (bookReviewsByUser.isNotEmpty)
+                    ? ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      shrinkWrap: true,
+                      itemCount: bookReviewsByUser.length,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: EdgeInsets.only(top: (index == 0) ? 0 : 8 , bottom: (index == bookReviewsByUser.length - 1) ? 0 : 8),
+                          child: buildReviewBooksItem(bookReviewsByUser[index], books[index], docUserBorrowBookId[index])
+                        );
+                      },
+                    )
+                    : const Center(
+                      child: ShowText(
+                        text: "ไม่มีหนังสือสำหรับการรีวิว",
+                      ),
+                    );
+                  },
                 );
               },
             )
-            : const Center(
-              child: ShowText(text: 'ไม่มีหนังสือให้รีวิว'),
-            )
+            
           )
 
         ],
@@ -64,13 +158,36 @@ class _ReviewState extends State<Review> {
     );
   }
 
-  Widget buildReviewBooksItem (MyReview review) {
+  Widget buildReviewBooksItem (BorrowUserModel review, BookModel book, String docUserBorrowBook) {
+    DateTime date = review.startDate.toDate();
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: (){
-          Navigator.of(context).push(_createRoute(const ReviewDetail()));
+        onTap: () async {
+          final response = await Navigator.of(context).push(
+            _createRoute(
+              ReviewDetail(
+                docBorrowId: docUserBorrowBook, 
+                docUser: docUser!, 
+                borrowUserModel: review, 
+                bookModel: book,
+              )
+            )
+          );
+
+          if (response != null) {
+            Map<String, dynamic> data = response;
+            if (data['isReview']) {
+              setState(() {
+                int indexRemove = bookReviewsByUser.indexOf(review);
+                bookReviewsByUser.removeAt(indexRemove);
+                docBookIds.removeAt(indexRemove);
+                books.removeAt(indexRemove);
+                docUserBorrowBookId.removeAt(indexRemove);
+              });
+            }
+          }
         },
         child: Card(
           shape: RoundedRectangleBorder(
@@ -84,18 +201,10 @@ class _ReviewState extends State<Review> {
               children: [
                 Expanded(
                   flex: 1,
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: Colors.grey,
-                    ),
-                    child: const Icon(
-                      Icons.book,
-                      size: 40,
-                      color: Colors.white,
-                    ),
+                  child: CachedNetworkImage(
+                    imageUrl: book.cover,
+                    fit: BoxFit.fitHeight,
+                    width: 100,
                   ),
                 ),
                 const SizedBox(width: 16,),
@@ -108,7 +217,7 @@ class _ReviewState extends State<Review> {
                       Align(
                           alignment: Alignment.topLeft,
                           child: Text(
-                            review.title,
+                            book.title,
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -119,7 +228,7 @@ class _ReviewState extends State<Review> {
                       const SizedBox(height: 6,),
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: ShowText(text: 'คุณได้ยืมเมื่อวันที่ ${review.date.day}-${review.date.month}-${ review.date.year }')
+                        child: ShowText(text: 'คุณได้ยืมเมื่อวันที่ ${date.day}-${date.month}-${ date.year }')
                       ),
                       const SizedBox(height: 16,),
                       Align(
@@ -128,10 +237,33 @@ class _ReviewState extends State<Review> {
                           style: ElevatedButton.styleFrom(
                             primary: MyContant.dark,
                             elevation: 0,
-                            shape: StadiumBorder()
+                            shape: const StadiumBorder()
                           ),
-                          onPressed: () {
-                            Navigator.of(context).push(_createRoute(const ReviewDetail()));
+                          onPressed: () async {
+                            final response = await Navigator.of(context).push(
+                              _createRoute(
+                                ReviewDetail(
+                                  docBorrowId: docUserBorrowBook, 
+                                  docUser: docUser!, 
+                                  borrowUserModel: 
+                                  review, bookModel: 
+                                  book,
+                                )
+                              )
+                            );
+
+                            if (response != null) {
+                              Map<String, dynamic> data = response;
+                              if (data['isReview']) {
+                                setState(() {
+                                  int indexRemove = bookReviewsByUser.indexOf(review);
+                                  bookReviewsByUser.removeAt(indexRemove);
+                                  docBookIds.removeAt(indexRemove);
+                                  books.removeAt(indexRemove);
+                                  docUserBorrowBookId.removeAt(indexRemove);
+                                });
+                              }
+                            }
                           } ,
                           icon: const Icon(Icons.star, color: Colors.white, size: 17,),
                           label: const Text(

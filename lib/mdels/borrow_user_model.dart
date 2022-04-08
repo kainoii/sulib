@@ -1,17 +1,20 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sulib/mdels/review-model.dart';
 
 class BorrowUserModel {
   final String docBook;
   final Timestamp startDate;
   final Timestamp endDate;
   final bool status;
+  final ReviewModel? review;
   BorrowUserModel({
     required this.docBook,
     required this.startDate,
     required this.endDate,
     required this.status,
+    this.review
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +23,7 @@ class BorrowUserModel {
       'startDate': startDate,
       'endDate': endDate,
       'status': status,
+      'review': review?.toMapReview()
     };
   }
 
@@ -29,6 +33,7 @@ class BorrowUserModel {
       startDate:(map['startDate']),
       endDate: (map['endDate']),
       status: map['status'] ?? false,
+      review: (map['review'] != null) ? ReviewModel.fromMap(map['review']) : null
     );
   }
 
@@ -36,3 +41,4 @@ class BorrowUserModel {
 
   factory BorrowUserModel.fromJson(String source) => BorrowUserModel.fromMap(json.decode(source));
 }
+

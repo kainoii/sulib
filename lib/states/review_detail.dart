@@ -1,22 +1,63 @@
 
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:sulib/mdels/book-model.dart';
+import 'package:sulib/mdels/borrow_user_model.dart';
+import 'package:sulib/mdels/review-model.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/widgets/show_text.dart';
 
 class ReviewDetail extends StatefulWidget {
-  const ReviewDetail({ Key? key }) : super(key: key);
+  final String docBorrowId;
+  final String docUser;
+  final BorrowUserModel borrowUserModel;
+  final BookModel bookModel;
+
+  const ReviewDetail({ 
+    Key? key, 
+    required this.docBorrowId,
+    required this.docUser, 
+    required this.borrowUserModel, 
+    required this.bookModel 
+  }) : super(key: key);
 
   @override
-  State<ReviewDetail> createState() => _ReviewDetailState();
+  // ignore: no_logic_in_create_state
+  State<ReviewDetail> createState() => _ReviewDetailState(
+    docBorrowId: docBorrowId,
+    docUser: docUser,
+    borrowUserModel: borrowUserModel,
+    bookModel: bookModel
+  );
 }
 
 class _ReviewDetailState extends State<ReviewDetail> {
 
+  final String docBorrowId;
+  final String docUser;
+  final BorrowUserModel borrowUserModel;
+  final BookModel bookModel;
+
+  _ReviewDetailState({
+    required this.docBorrowId,
+    required this.docUser, 
+    required this.borrowUserModel, 
+    required this.bookModel
+  });
+
   TextEditingController controllerReview = TextEditingController();
 
   double rate = 0;
+
+  bool isLoading = false;
+
+  bool isReviewSuccess = false;
+
+  bool isSuccessdocUser = false;
+  bool isSuccessdocBook = false;
 
   @override
   void dispose() {
@@ -37,25 +78,16 @@ class _ReviewDetailState extends State<ReviewDetail> {
             ),
             body: Center(
               child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    buildBookImage(),
-                    buildBookTitle(),
-                    buildRatingStar(),
-                    buildTextFieldDescription(),
-                    buildButton(),
-                  ],
-                ),
+                child: (isLoading)
+                ? pageProcessWidget()
+                : (isReviewSuccess) 
+                ? pageProcessWidget()
+                : pageStartWidget()
               ),
             ),
           ),
         ),
       );
-    // return GestureDetector(
-    //   onTap: () => FocusScope.of(context).unfocus(),
-    //   child: 
-    // );
   }
 
   Future<bool> onWillPop() async {
@@ -90,22 +122,43 @@ class _ReviewDetailState extends State<ReviewDetail> {
 
   }
 
-  Widget buildBookImage() => const SizedBox(
-    width: 100,
-    height: 180,
-    child: FittedBox(
-      fit: BoxFit.contain,
-      child: Icon(
-        Icons.image,
-        color: Colors.grey,
-      ),
-    ),
+  Widget pageStartWidget() => Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      buildBookImage(),
+      buildBookTitle(),
+      buildRatingStar(),
+      buildTextFieldDescription(),
+      buildButton(),
+    ],
   );
+
+  Widget pageProcessWidget() => Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    // ignore: prefer_const_literals_to_create_immutables
+    children: [
+      buildLoadingImage(),
+      const SizedBox(
+        height: 100,
+      ),
+      buildTextLoading(isLoading ? "กำลังดำเนินการส่ง" : "ดำเนินการรีวิวเรียบร้อย"),
+      (isLoading) ?
+      Container()
+      : buildBackButton()
+    ],
+  );
+
+  Widget buildBookImage() => CachedNetworkImage(
+      imageUrl: bookModel.cover,
+      fit: BoxFit.contain,
+      width: 100,
+      height: 180,
+    );
 
   Widget buildBookTitle() => Padding(
     padding: const EdgeInsets.only(top: 16, bottom: 8),
     child: ShowText(
-      text:'ชื่อเรื่อง',
+      text: bookModel.title,
       textStyle: TextStyle(
         color: MyContant.dark,
         fontWeight: FontWeight.w700,
@@ -121,7 +174,7 @@ class _ReviewDetailState extends State<ReviewDetail> {
       minRating: 0,
       allowHalfRating: true,
       itemCount: 5,
-      itemPadding: EdgeInsets.symmetric(horizontal: 8),
+      itemPadding: const EdgeInsets.symmetric(horizontal: 8),
       itemSize: 40,
       itemBuilder: (context, _) => const Icon(
         Icons.star,
@@ -182,11 +235,31 @@ class _ReviewDetailState extends State<ReviewDetail> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 primary: MyContant.dark,
-                shape: StadiumBorder()
+                shape: const StadiumBorder()
               ),
-              onPressed: () {
+              onPressed: () async{
                 FocusScope.of(context).unfocus();
-                Navigator.of(context).pop();
+                setState(() {
+                  isLoading = true;
+                });
+                    ReviewModel review = ReviewModel(
+                      rate: rate, 
+                      description: controllerReview.text.toString(), 
+                      date: Timestamp.fromDate(DateTime.now())
+                    );
+
+                    Map<String, dynamic> data = {
+                      'review' : review.toMapReview()
+                    };
+                await updateUserReview(data);
+                await updateBookReview(data);
+                if (isSuccessdocUser && isSuccessdocBook) {
+                  setState(() {
+                    isLoading = false;
+                    isReviewSuccess = true;
+                    controllerReview.clear();
+                  });
+                }
               },
               child: const Text(
                 'ยืนยัน',
@@ -223,6 +296,120 @@ class _ReviewDetailState extends State<ReviewDetail> {
             ),
           )
         ],
+      ),
+    ),
+  );
+
+  Future updateUserReview(Map<String, dynamic> data) async{
+
+    FirebaseFirestore.instance
+      .collection('user')
+      .doc(docUser)
+      .collection('borrow')
+      .doc(docBorrowId)
+      .update(data).then((value) {
+        setState(() {
+          isSuccessdocUser = true;
+        });
+      });
+    
+  }
+
+  Future updateBookReview(Map<String, dynamic> data) async{
+
+    List<String> docBookBorrowUserList = await getdocBookBorrowUserId();
+
+    String docBookBorrowUser = docBookBorrowUserList.first;
+
+    final response = await FirebaseFirestore.instance
+                      .collection('book')
+                      .doc(borrowUserModel.docBook)
+                      .collection('borrow')
+                      .doc(docBookBorrowUser)
+                      .update(data)
+                      .then((value) {
+                        isSuccessdocBook = true;
+                      });
+  }
+
+  Future<List<String>> getdocBookBorrowUserId() async{
+    List<String> result = [];
+    final value = await FirebaseFirestore.instance
+                      .collection('book')
+                      .doc(borrowUserModel.docBook)
+                      .collection('borrow')
+                      .where('docUser', isEqualTo: docUser)
+                      .where('startDate', isEqualTo: borrowUserModel.startDate)
+                      .where('endDate', isEqualTo: borrowUserModel.endDate)
+                      .where('status', isEqualTo: false)
+                      .get();
+    if (value.docs.isNotEmpty) {
+      for (var item in value.docs) {
+          result.add(item.id);
+          print("========= id BookBorrowUser = ${ item.id }");
+        }
+    }
+    return result;
+  }
+
+  Widget buildLoadingImage() => SizedBox(
+    width: 100,
+    height: 100,
+    child: (isLoading)
+    ? const CircularProgressIndicator(color: Colors.teal)
+    : Container(
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.teal,
+      ),
+      child: const Icon(
+        Icons.check,
+        color: Colors.white,
+        size: 50,
+      ),
+    )
+  );
+
+  Widget buildTextLoading(String text) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 32),
+    child: ShowText(
+      text: text,
+      textStyle: TextStyle(
+        color: MyContant.black,
+        fontWeight: FontWeight.w700,
+        fontSize: 24
+      ),
+    ),
+  );
+
+  Widget buildBackButton() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+    child: ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        primary: MyContant.dark,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        minimumSize: const Size.fromHeight(50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        elevation: 2,
+      ),
+      onPressed: () {
+        Navigator.of(context).pop({'isReview' : true});
+      },
+      icon: const Icon(
+        Icons.arrow_back_ios,
+        size: 24,
+        color: Colors.white,
+      ),
+      label: const ShowText(
+        text: "กลับสู่หน้าหลัก",
+        textStyle: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 24
+        ),
       ),
     ),
   );
