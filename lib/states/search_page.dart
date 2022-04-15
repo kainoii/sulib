@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:sulib/mdels/book-model.dart';
-import 'package:sulib/states/borrow_book.dart';
+import 'package:sulib/states/detail_book.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/widgets/show_logo.dart';
 import 'package:sulib/widgets/show_text.dart';
@@ -127,7 +127,7 @@ class _SearchPageState extends State<SearchPage> {
                 print(indexOfBooks);
 
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => BorrowBook(
+                  MaterialPageRoute(builder: (context) => DetailBook(
                     bookModel: books[indexOfBooks],
                     docBook: booksId[indexOfBooks],
                   ))

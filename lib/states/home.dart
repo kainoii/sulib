@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:sulib/mdels/book-model.dart';
-import 'package:sulib/states/borrow_book.dart';
+import 'package:sulib/states/detail_book.dart';
 import 'package:sulib/states/search_page.dart';
 import 'package:sulib/states/show_progress.dart';
 import 'package:sulib/states/show_title.dart';
@@ -157,7 +157,7 @@ class _HomeState extends State<Home> {
                 onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => BorrowBook(
+                      builder: (context) => DetailBook(
                         bookModel: forYouBookModels[index],
                         docBook: docForYouBooks[index],
                       ),
@@ -199,7 +199,7 @@ class _HomeState extends State<Home> {
                 onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => BorrowBook(
+                      builder: (context) => DetailBook(
                         bookModel: faveritBookModels[index],
                         docBook: docFaveritBooks[index],
                       ),
@@ -241,7 +241,7 @@ class _HomeState extends State<Home> {
                 onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => BorrowBook(
+                      builder: (context) => DetailBook(
                         bookModel: newBookModels[index],
                         docBook: docNewBooks[index],
                       ),

@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:sulib/mdels/book-model.dart';
 import 'package:sulib/mdels/borrow_book_model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
-import 'package:sulib/mdels/my_review_model.dart';
 import 'package:sulib/states/review_detail.dart';
 import 'package:sulib/states/show_title.dart';
 import 'package:sulib/utility/my_constant.dart';
