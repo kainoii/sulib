@@ -16,27 +16,22 @@ import 'package:sulib/widgets/show_text.dart';
 import 'package:http/http.dart' as http;
 
 class BorrowBook extends StatefulWidget {
-
   final BookModel bookModel;
   final String docUser;
   final String docBook;
-  const BorrowBook({
-    Key? key,
-    required this.bookModel,
-    required this.docUser,
-    required this.docBook
-  }) : super(key: key);
+  const BorrowBook(
+      {Key? key,
+      required this.bookModel,
+      required this.docUser,
+      required this.docBook})
+      : super(key: key);
 
   @override
   State<BorrowBook> createState() => _BorrowBookState(
-    bookModel: bookModel,
-    docUser: docUser,
-    docBook: docBook
-  );
+      bookModel: bookModel, docUser: docUser, docBook: docBook);
 }
 
 class _BorrowBookState extends State<BorrowBook> {
-
   final formKey = GlobalKey<FormState>();
   TextEditingController controllerBuilding = TextEditingController();
   TextEditingController controllerAddressNumber = TextEditingController();
@@ -70,20 +65,17 @@ class _BorrowBookState extends State<BorrowBook> {
   final String docBook;
   final BookModel bookModel;
 
-  _BorrowBookState({
-    required this.docUser,
-    required this.docBook,
-    required this.bookModel
-  });
+  _BorrowBookState(
+      {required this.docUser, required this.docBook, required this.bookModel});
 
   Future<void> processBorrowBook() async {
-
     setState(() {
       isLoading = true;
     });
 
     DateTime currentDateTime = DateTime.now();
-    DateTime endDateTime = DateTime(currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
+    DateTime endDateTime = DateTime(
+        currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
 
     BorrowUserModel borrowUserModel = BorrowUserModel(
       docBook: docBook,
@@ -116,13 +108,12 @@ class _BorrowBookState extends State<BorrowBook> {
           .doc()
           .set(borrowBookModel.toMap())
           .then((value) {
-
-          sendEmail().then((value) {
-            setState(() {
-              isLoading = false;
-            });
-            Navigator.pop(context, true);
+        sendEmail().then((value) {
+          setState(() {
+            isLoading = false;
           });
+          Navigator.pop(context, true);
+        });
 
         // Navigator.pop(context);
       });
@@ -130,15 +121,15 @@ class _BorrowBookState extends State<BorrowBook> {
   }
 
   Future sendEmail() async {
-
-    final serviceId = 'service-key';
-    final templateId = 'template-key';
-    final userId = 'public-key';
+    final serviceId = 'service_697yyoo';
+    final templateId = 'template_lq94msz';
+    final userId = '1nvoZ0x2hkYsJR-06';
 
     UserModel user = await getUserData();
 
     DateTime currentDateTime = DateTime.now();
-    DateTime endDateTime = DateTime(currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
+    DateTime endDateTime = DateTime(
+        currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
 
     final String user_name = user.name;
     final String user_email = user.email;
@@ -147,45 +138,46 @@ class _BorrowBookState extends State<BorrowBook> {
     String start_borrow_date;
     String end_borrow_date;
     if (currentDateTime.month < 10) {
-      start_borrow_date = "${ currentDateTime.day }/0${ currentDateTime.month }/${ currentDateTime.year + 543 }";
-      end_borrow_date = "${ endDateTime.day }/0${ endDateTime.month }/${ endDateTime.year + 543 }";
+      start_borrow_date =
+          "${currentDateTime.day}/0${currentDateTime.month}/${currentDateTime.year + 543}";
+      end_borrow_date =
+          "${endDateTime.day}/0${endDateTime.month}/${endDateTime.year + 543}";
     } else {
-      start_borrow_date = "${ currentDateTime.day }/${ currentDateTime.month }/${ currentDateTime.year + 543 }";
-      end_borrow_date = "${ endDateTime.day }/${ endDateTime.month }/${ endDateTime.year + 543 }";
+      start_borrow_date =
+          "${currentDateTime.day}/${currentDateTime.month}/${currentDateTime.year + 543}";
+      end_borrow_date =
+          "${endDateTime.day}/${endDateTime.month}/${endDateTime.year + 543}";
     }
 
     final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
-    final response = await http.post(
-      url,
-      headers: {
-        'origin': 'http://localhost',
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        'service_id': serviceId,
-        'template_id': templateId,
-        'user_id': userId,
-        'template_params': {
-          'user_name': user_name,
-          'user_email': user_email,
-          'book_title': book_title,
-          'start_borrow_date' : start_borrow_date,
-          'end_borrow_date': end_borrow_date,
-          'user_address': user_address
-        }
-      })
-    );
+    final response = await http.post(url,
+        headers: {
+          'origin': 'http://localhost',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'service_id': serviceId,
+          'template_id': templateId,
+          'user_id': userId,
+          'template_params': {
+            'user_name': user_name,
+            'user_email': user_email,
+            'book_title': book_title,
+            'start_borrow_date': start_borrow_date,
+            'end_borrow_date': end_borrow_date,
+            'user_address': user_address
+          }
+        }));
     print(response.body);
   }
 
   Future<UserModel> getUserData() async {
-    final response = await FirebaseFirestore.instance
-        .collection('user')
-        .doc(docUser).get();
+    final response =
+        await FirebaseFirestore.instance.collection('user').doc(docUser).get();
 
     return UserModel.fromMap(response.data()!);
   }
-  
+
   @override
   void initState() {
     for (int i = 0; i < focusNode.length; i++) {
@@ -216,25 +208,23 @@ class _BorrowBookState extends State<BorrowBook> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildBorrowBookAppBar(),
-      body: buildBorrowBookBody()
-    );
+        appBar: buildBorrowBookAppBar(), body: buildBorrowBookBody());
   }
 
   AppBar buildBorrowBookAppBar() => AppBar(
-    title: Container(
-      width: MediaQuery.of(context).size.width * 0.5,
-      child: const Text(
-        "ยินยันการยืมหนังสือ",
-        style: TextStyle(
-          color: Colors.white,
+        title: Container(
+          width: MediaQuery.of(context).size.width * 0.5,
+          child: const Text(
+            "ยินยันการยืมหนังสือ",
+            style: TextStyle(
+              color: Colors.white,
+            ),
+          ),
         ),
-      ),
-    ),
-    centerTitle: true,
-    elevation: 0,
-    backgroundColor: MyContant.primary,
-  );
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: MyContant.primary,
+      );
 
   Widget buildBorrowBookBody() {
     return GestureDetector(
@@ -242,7 +232,9 @@ class _BorrowBookState extends State<BorrowBook> {
       child: ListView(
         shrinkWrap: true,
         children: [
-          const SizedBox(height: 32,),
+          const SizedBox(
+            height: 32,
+          ),
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: CachedNetworkImage(
@@ -252,13 +244,17 @@ class _BorrowBookState extends State<BorrowBook> {
               fit: BoxFit.contain,
             ),
           ),
-          const SizedBox(height: 24,),
+          const SizedBox(
+            height: 24,
+          ),
           Text(
             bookModel.title,
             style: MyContant().h2Style(),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32,),
+          const SizedBox(
+            height: 32,
+          ),
           // buildForm()
 
           AnimatedContainer(
@@ -268,7 +264,6 @@ class _BorrowBookState extends State<BorrowBook> {
                 ? buildSummaryAddress()
                 : buildFormAddress(),
           )
-
         ],
       ),
     );
@@ -286,54 +281,54 @@ class _BorrowBookState extends State<BorrowBook> {
               style: TextStyle(
                   color: Colors.black,
                   fontSize: 20,
-                  fontWeight: FontWeight.w700
-              ),
+                  fontWeight: FontWeight.w700),
               textAlign: TextAlign.start,
             ),
-            const SizedBox(height: 24,),
-
+            const SizedBox(
+              height: 24,
+            ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Container(
                 height: 50,
                 child: TextFormField(
-                  controller: controllerBuilding,
-                  focusNode: focusNode[0],
-                  onTap: () => FocusScope.of(context).requestFocus(focusNode[0]),
-                  decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.all(10),
-                      border: OutlineInputBorder(
-                        // borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: Colors.black, width: 1),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        // borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: Color(0xffB87878), width: 2),
-                      ),
-                      fillColor: Colors.white,
-                      filled: true,
-                      labelText: 'อาคาร / หมู่บ้าน :',
-                      labelStyle: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                      ),
-                      hintText: "กรุณากรอก อาคาร.... หรือ หมู่บ้าน....",
-                      hintStyle: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      )
-                  ),
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                  ),
-                  cursorColor: Colors.black,
-                  keyboardType: TextInputType.text,
-                  textInputAction: TextInputAction.next,
-                  onFieldSubmitted: (String str) {
-                    FocusScope.of(context).requestFocus(focusNode[1]);
-                  }
-                ),
+                    controller: controllerBuilding,
+                    focusNode: focusNode[0],
+                    onTap: () =>
+                        FocusScope.of(context).requestFocus(focusNode[0]),
+                    decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.all(10),
+                        border: OutlineInputBorder(
+                          // borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: Colors.black, width: 1),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          // borderRadius: BorderRadius.circular(16),
+                          borderSide:
+                              BorderSide(color: Color(0xffB87878), width: 2),
+                        ),
+                        fillColor: Colors.white,
+                        filled: true,
+                        labelText: 'อาคาร / หมู่บ้าน :',
+                        labelStyle: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                        ),
+                        hintText: "กรุณากรอก อาคาร.... หรือ หมู่บ้าน....",
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        )),
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                    ),
+                    cursorColor: Colors.black,
+                    keyboardType: TextInputType.text,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (String str) {
+                      FocusScope.of(context).requestFocus(focusNode[1]);
+                    }),
               ),
             ),
             Row(
@@ -346,16 +341,19 @@ class _BorrowBookState extends State<BorrowBook> {
                     child: TextFormField(
                       controller: controllerAddressNumber,
                       focusNode: focusNode[1],
-                      onTap: () => FocusScope.of(context).requestFocus(focusNode[1]),
+                      onTap: () =>
+                          FocusScope.of(context).requestFocus(focusNode[1]),
                       decoration: const InputDecoration(
                           contentPadding: EdgeInsets.all(10),
                           border: OutlineInputBorder(
                             // borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: Colors.black, width: 1),
+                            borderSide:
+                                BorderSide(color: Colors.black, width: 1),
                           ),
                           focusedBorder: OutlineInputBorder(
                             // borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: Color(0xffB87878), width: 2),
+                            borderSide:
+                                BorderSide(color: Color(0xffB87878), width: 2),
                           ),
                           fillColor: Colors.white,
                           filled: true,
@@ -368,8 +366,7 @@ class _BorrowBookState extends State<BorrowBook> {
                           hintStyle: TextStyle(
                             color: Colors.grey,
                             fontSize: 14,
-                          )
-                      ),
+                          )),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return "* กรุณากรอกบ้านเลขที่";
@@ -397,7 +394,8 @@ class _BorrowBookState extends State<BorrowBook> {
                     child: TextFormField(
                       controller: controllerSoi,
                       focusNode: focusNode[2],
-                      onTap: ()=> FocusScope.of(context).requestFocus(focusNode[2]),
+                      onTap: () =>
+                          FocusScope.of(context).requestFocus(focusNode[2]),
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.all(10),
                         border: OutlineInputBorder(
@@ -406,7 +404,8 @@ class _BorrowBookState extends State<BorrowBook> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           // borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Color(0xffB87878), width: 2),
+                          borderSide:
+                              BorderSide(color: Color(0xffB87878), width: 2),
                         ),
                         fillColor: Colors.white,
                         filled: true,
@@ -446,16 +445,19 @@ class _BorrowBookState extends State<BorrowBook> {
                     child: TextFormField(
                       controller: controllerMoo,
                       focusNode: focusNode[3],
-                      onTap: () => FocusScope.of(context).requestFocus(focusNode[3]),
+                      onTap: () =>
+                          FocusScope.of(context).requestFocus(focusNode[3]),
                       decoration: const InputDecoration(
                           contentPadding: EdgeInsets.all(10),
                           border: OutlineInputBorder(
                             // borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: Colors.black, width: 1),
+                            borderSide:
+                                BorderSide(color: Colors.black, width: 1),
                           ),
                           focusedBorder: OutlineInputBorder(
                             // borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: Color(0xffB87878), width: 2),
+                            borderSide:
+                                BorderSide(color: Color(0xffB87878), width: 2),
                           ),
                           fillColor: Colors.white,
                           filled: true,
@@ -468,8 +470,7 @@ class _BorrowBookState extends State<BorrowBook> {
                           hintStyle: TextStyle(
                             color: Colors.grey,
                             fontSize: 14,
-                          )
-                      ),
+                          )),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 16,
@@ -490,7 +491,8 @@ class _BorrowBookState extends State<BorrowBook> {
                     child: TextFormField(
                       controller: controllerStreet,
                       focusNode: focusNode[4],
-                      onTap: ()=> FocusScope.of(context).requestFocus(focusNode[4]),
+                      onTap: () =>
+                          FocusScope.of(context).requestFocus(focusNode[4]),
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.all(10),
                         border: OutlineInputBorder(
@@ -499,7 +501,8 @@ class _BorrowBookState extends State<BorrowBook> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           // borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Color(0xffB87878), width: 2),
+                          borderSide:
+                              BorderSide(color: Color(0xffB87878), width: 2),
                         ),
                         fillColor: Colors.white,
                         filled: true,
@@ -534,7 +537,8 @@ class _BorrowBookState extends State<BorrowBook> {
               child: TextFormField(
                   controller: controllerSubDistrict,
                   focusNode: focusNode[5],
-                  onTap: () => FocusScope.of(context).requestFocus(focusNode[5]),
+                  onTap: () =>
+                      FocusScope.of(context).requestFocus(focusNode[5]),
                   decoration: const InputDecoration(
                       contentPadding: EdgeInsets.all(10),
                       border: OutlineInputBorder(
@@ -543,7 +547,8 @@ class _BorrowBookState extends State<BorrowBook> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         // borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: Color(0xffB87878), width: 2),
+                        borderSide:
+                            BorderSide(color: Color(0xffB87878), width: 2),
                       ),
                       fillColor: Colors.white,
                       filled: true,
@@ -556,8 +561,7 @@ class _BorrowBookState extends State<BorrowBook> {
                       hintStyle: TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
-                      )
-                  ),
+                      )),
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 16,
@@ -573,15 +577,15 @@ class _BorrowBookState extends State<BorrowBook> {
                   textInputAction: TextInputAction.next,
                   onFieldSubmitted: (String str) {
                     FocusScope.of(context).requestFocus(focusNode[6]);
-                  }
-              ),
+                  }),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: TextFormField(
                   controller: controllerDistrict,
                   focusNode: focusNode[6],
-                  onTap: () => FocusScope.of(context).requestFocus(focusNode[6]),
+                  onTap: () =>
+                      FocusScope.of(context).requestFocus(focusNode[6]),
                   decoration: const InputDecoration(
                       contentPadding: EdgeInsets.all(10),
                       border: OutlineInputBorder(
@@ -590,7 +594,8 @@ class _BorrowBookState extends State<BorrowBook> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         // borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: Color(0xffB87878), width: 2),
+                        borderSide:
+                            BorderSide(color: Color(0xffB87878), width: 2),
                       ),
                       fillColor: Colors.white,
                       filled: true,
@@ -603,8 +608,7 @@ class _BorrowBookState extends State<BorrowBook> {
                       hintStyle: TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
-                      )
-                  ),
+                      )),
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 16,
@@ -620,15 +624,15 @@ class _BorrowBookState extends State<BorrowBook> {
                   textInputAction: TextInputAction.next,
                   onFieldSubmitted: (String str) {
                     FocusScope.of(context).requestFocus(focusNode[7]);
-                  }
-              ),
+                  }),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: TextFormField(
                   controller: controllerProvince,
                   focusNode: focusNode[7],
-                  onTap: () => FocusScope.of(context).requestFocus(focusNode[7]),
+                  onTap: () =>
+                      FocusScope.of(context).requestFocus(focusNode[7]),
                   decoration: const InputDecoration(
                       contentPadding: EdgeInsets.all(10),
                       border: OutlineInputBorder(
@@ -637,7 +641,8 @@ class _BorrowBookState extends State<BorrowBook> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         // borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: Color(0xffB87878), width: 2),
+                        borderSide:
+                            BorderSide(color: Color(0xffB87878), width: 2),
                       ),
                       fillColor: Colors.white,
                       filled: true,
@@ -650,8 +655,7 @@ class _BorrowBookState extends State<BorrowBook> {
                       hintStyle: TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
-                      )
-                  ),
+                      )),
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 16,
@@ -667,15 +671,15 @@ class _BorrowBookState extends State<BorrowBook> {
                   textInputAction: TextInputAction.next,
                   onFieldSubmitted: (String str) {
                     FocusScope.of(context).requestFocus(focusNode[8]);
-                  }
-              ),
+                  }),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: TextFormField(
                   controller: controllerZipCode,
                   focusNode: focusNode[8],
-                  onTap: () => FocusScope.of(context).requestFocus(focusNode[8]),
+                  onTap: () =>
+                      FocusScope.of(context).requestFocus(focusNode[8]),
                   decoration: const InputDecoration(
                       contentPadding: EdgeInsets.all(10),
                       border: OutlineInputBorder(
@@ -684,7 +688,8 @@ class _BorrowBookState extends State<BorrowBook> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         // borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: Color(0xffB87878), width: 2),
+                        borderSide:
+                            BorderSide(color: Color(0xffB87878), width: 2),
                       ),
                       fillColor: Colors.white,
                       filled: true,
@@ -697,8 +702,7 @@ class _BorrowBookState extends State<BorrowBook> {
                       hintStyle: TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
-                      )
-                  ),
+                      )),
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 16,
@@ -711,21 +715,19 @@ class _BorrowBookState extends State<BorrowBook> {
                   },
                   cursorColor: Colors.black,
                   keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.done
-              ),
+                  textInputAction: TextInputAction.done),
             ),
-
-            const SizedBox(height: 32,),
+            const SizedBox(
+              height: 32,
+            ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-                primary: Colors.white,
-                minimumSize: const Size.fromHeight(50),
-                shape: StadiumBorder(
-                  side: BorderSide(width: 2, color: MyContant.dark)
-                ),
-                elevation: 2
-              ),
+                  padding: const EdgeInsets.all(16),
+                  primary: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                  shape: StadiumBorder(
+                      side: BorderSide(width: 2, color: MyContant.dark)),
+                  elevation: 2),
               icon: Icon(
                 Icons.home_rounded,
                 color: MyContant.dark,
@@ -736,16 +738,14 @@ class _BorrowBookState extends State<BorrowBook> {
                 style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 20,
-                    color: MyContant.dark
-                ),
+                    color: MyContant.dark),
               ),
-              onPressed: (){
+              onPressed: () {
                 if (formKey.currentState!.validate()) {
                   setAddressUser();
                 }
               },
             ),
-
           ],
         ),
       ),
@@ -755,10 +755,14 @@ class _BorrowBookState extends State<BorrowBook> {
   void setAddressUser() {
     AddressSend address = AddressSend(
       addressNumber: controllerAddressNumber.text.toString(),
-      building: controllerBuilding.text.isNotEmpty ? controllerBuilding.text.toString() : null,
+      building: controllerBuilding.text.isNotEmpty
+          ? controllerBuilding.text.toString()
+          : null,
       moo: controllerMoo.text.isNotEmpty ? controllerMoo.text.toString() : null,
       soi: controllerSoi.text.isNotEmpty ? controllerSoi.text.toString() : null,
-      street: controllerStreet.text.isNotEmpty ? controllerStreet.text.toString() : null,
+      street: controllerStreet.text.isNotEmpty
+          ? controllerStreet.text.toString()
+          : null,
       district: controllerDistrict.text.toString(),
       subDistrict: controllerSubDistrict.text.toString(),
       province: controllerProvince.text.toString(),
@@ -774,96 +778,97 @@ class _BorrowBookState extends State<BorrowBook> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: (addressUser != null)
-        ? Column(
-          children: [
-
-            const Text(
-              'ที่อยู่จัดส่ง',
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700
-              ),
-              textAlign: TextAlign.start,
-            ),
-
-            const SizedBox(height: 16,),
-
-            Material(
-              type: MaterialType.transparency,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: ()=> setState(()=> isSuccessFormAddress = false),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: MyContant.dark,
+          ? Column(
+              children: [
+                const Text(
+                  'ที่อยู่จัดส่ง',
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700),
+                  textAlign: TextAlign.start,
+                ),
+                const SizedBox(
+                  height: 16,
+                ),
+                Material(
+                  type: MaterialType.transparency,
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          (addressUser != null) ? getAddressSummary() : 'test',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
+                    onTap: () => setState(() => isSuccessFormAddress = false),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: MyContant.dark,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      Material(
-                        type: MaterialType.transparency,
-                        child: InkWell(
-                          onTap: ()=> setState(()=> isSuccessFormAddress = false),
-                          child: const Icon(
-                            Icons.navigate_next_rounded,
-                            color: Colors.white,
-                            size: 24,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              (addressUser != null)
+                                  ? getAddressSummary()
+                                  : 'test',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
                           ),
-                        ),
+                          Material(
+                            type: MaterialType.transparency,
+                            child: InkWell(
+                              onTap: () =>
+                                  setState(() => isSuccessFormAddress = false),
+                              child: const Icon(
+                                Icons.navigate_next_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 32,),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-                primary: MyContant.dark,
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4)
+                const SizedBox(
+                  height: 32,
                 ),
-              ),
-              onPressed: (addressUser == null)
-                  ? null
-                  : isLoading ? null : (){
-                showDialogConfirm();
-              },
-              child: isLoading
-                  ? const CircularProgressIndicator(
-                color: Colors.white,
-              )
-                  : const Text(
-                "ยืนยันการยืม",
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                    color: Colors.white
-                ),
-              ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.all(16),
+                    primary: MyContant.dark,
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4)),
+                  ),
+                  onPressed: (addressUser == null)
+                      ? null
+                      : isLoading
+                          ? null
+                          : () {
+                              showDialogConfirm();
+                            },
+                  child: isLoading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                        )
+                      : const Text(
+                          "ยืนยันการยืม",
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
+                              color: Colors.white),
+                        ),
+                )
+              ],
             )
-
-          ],
-        )
-        : const Center(
-        child: Text('โปรดกรอกข้อมูลให้ครบถ้วน'),
-      ),
+          : const Center(
+              child: Text('โปรดกรอกข้อมูลให้ครบถ้วน'),
+            ),
     );
   }
 
@@ -892,17 +897,17 @@ class _BorrowBookState extends State<BorrowBook> {
 
   void showDialogConfirm() {
     DateTime currentDateTime = DateTime.now();
-    DateTime endDateTime = DateTime(currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
+    DateTime endDateTime = DateTime(
+        currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
     MyDialog(context: context).confirmAction(
-      title: bookModel.title,
-      message:
-      'เริ่ม ${showDate(currentDateTime)} \n คืน ${showDate(endDateTime)}',
-      urlBook: bookModel.cover,
-      okFunc: () {
-        Navigator.pop(context);
-        processBorrowBook();
-      }
-    );
+        title: bookModel.title,
+        message:
+            'เริ่ม ${showDate(currentDateTime)} \n คืน ${showDate(endDateTime)}',
+        urlBook: bookModel.cover,
+        okFunc: () {
+          Navigator.pop(context);
+          processBorrowBook();
+        });
   }
 
   String showDate(DateTime dateTime) {
@@ -910,5 +915,4 @@ class _BorrowBookState extends State<BorrowBook> {
     String result = dateFormat.format(dateTime);
     return result;
   }
-
 }
