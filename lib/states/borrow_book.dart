@@ -131,9 +131,9 @@ class _BorrowBookState extends State<BorrowBook> {
 
   Future sendEmail() async {
 
-    final serviceId = 'service_buwc72s';
-    final templateId = 'template_i6n3vi3';
-    final userId = 'tdXc_jWp0Axelz3zY';
+    final serviceId = 'service-key';
+    final templateId = 'template-key';
+    final userId = 'public-key';
 
     UserModel user = await getUserData();
 
