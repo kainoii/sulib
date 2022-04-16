@@ -1,4 +1,4 @@
-class Address {
+class AddressSend {
   final String addressNumber;
   final String? building;
   final String? moo;
@@ -9,7 +9,7 @@ class Address {
   final String province;
   final String zipCode;
 
-  Address(
+  AddressSend(
     {
     required this.addressNumber,
     this.building,

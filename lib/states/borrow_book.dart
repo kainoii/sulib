@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -6,10 +8,12 @@ import 'package:sulib/mdels/address.dart';
 import 'package:sulib/mdels/book-model.dart';
 import 'package:sulib/mdels/borrow_book_model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
+import 'package:sulib/mdels/user_model.dart';
 import 'package:sulib/states/show_title.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/utility/my_dialog.dart';
 import 'package:sulib/widgets/show_text.dart';
+import 'package:http/http.dart' as http;
 
 class BorrowBook extends StatefulWidget {
 
@@ -58,7 +62,7 @@ class _BorrowBookState extends State<BorrowBook> {
 
   bool isLoading = false;
 
-  late Address addressUser;
+  late AddressSend addressUser;
 
   bool isSuccessFormAddress = false;
 
@@ -112,13 +116,74 @@ class _BorrowBookState extends State<BorrowBook> {
           .doc()
           .set(borrowBookModel.toMap())
           .then((value) {
-          setState(() {
-            isLoading = false;
+
+          sendEmail().then((value) {
+            setState(() {
+              isLoading = false;
+            });
+            Navigator.pop(context, true);
           });
-          Navigator.pop(context, true);
+
         // Navigator.pop(context);
       });
     });
+  }
+
+  Future sendEmail() async {
+
+    final serviceId = 'service_buwc72s';
+    final templateId = 'template_i6n3vi3';
+    final userId = 'tdXc_jWp0Axelz3zY';
+
+    UserModel user = await getUserData();
+
+    DateTime currentDateTime = DateTime.now();
+    DateTime endDateTime = DateTime(currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
+
+    final String user_name = user.name;
+    final String user_email = user.email;
+    final String book_title = bookModel.title;
+    final String user_address = getAddressSummary();
+    String start_borrow_date;
+    String end_borrow_date;
+    if (currentDateTime.month < 10) {
+      start_borrow_date = "${ currentDateTime.day }/0${ currentDateTime.month }/${ currentDateTime.year + 543 }";
+      end_borrow_date = "${ endDateTime.day }/0${ endDateTime.month }/${ endDateTime.year + 543 }";
+    } else {
+      start_borrow_date = "${ currentDateTime.day }/${ currentDateTime.month }/${ currentDateTime.year + 543 }";
+      end_borrow_date = "${ endDateTime.day }/${ endDateTime.month }/${ endDateTime.year + 543 }";
+    }
+
+    final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
+    final response = await http.post(
+      url,
+      headers: {
+        'origin': 'http://localhost',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'service_id': serviceId,
+        'template_id': templateId,
+        'user_id': userId,
+        'template_params': {
+          'user_name': user_name,
+          'user_email': user_email,
+          'book_title': book_title,
+          'start_borrow_date' : start_borrow_date,
+          'end_borrow_date': end_borrow_date,
+          'user_address': user_address
+        }
+      })
+    );
+    print(response.body);
+  }
+
+  Future<UserModel> getUserData() async {
+    final response = await FirebaseFirestore.instance
+        .collection('user')
+        .doc(docUser).get();
+
+    return UserModel.fromMap(response.data()!);
   }
   
   @override
@@ -688,7 +753,7 @@ class _BorrowBookState extends State<BorrowBook> {
   }
 
   void setAddressUser() {
-    Address address = Address(
+    AddressSend address = AddressSend(
       addressNumber: controllerAddressNumber.text.toString(),
       building: controllerBuilding.text.isNotEmpty ? controllerBuilding.text.toString() : null,
       moo: controllerMoo.text.isNotEmpty ? controllerMoo.text.toString() : null,
