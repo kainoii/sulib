@@ -1,4 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:ffi';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -51,10 +53,13 @@ class _DetailBookState extends State<DetailBook> {
         .get();
     if (value.docs.isNotEmpty) {
       for(var item in value.docs) {
-        BorrowBookModel booksReviewbyUser = BorrowBookModel.fromMap(item.data());
-        bookForReviewList.add(booksReviewbyUser);
-        books.add(booksReviewbyUser);
-        print("userId ====> ${ booksReviewbyUser.docUser }");
+        BorrowBookModel booksReviewByUser = BorrowBookModel.fromMap(item.data());
+        if (booksReviewByUser.review!.rate != 0 || booksReviewByUser.review!.description! != "") {
+          print('book review : ${ booksReviewByUser.review!.rate } and description = ${ booksReviewByUser.review!.description! }');
+          bookForReviewList.add(booksReviewByUser);
+          books.add(booksReviewByUser);
+        }
+        print("userId ====> ${ booksReviewByUser.docUser }");
       }
     }
     bookForReviewList.forEach((element) {
@@ -341,80 +346,105 @@ class _DetailBookState extends State<DetailBook> {
     );
   }
 
+  Future<bool> isBookBorrowed() async {
+    final response = await FirebaseFirestore.instance
+        .collection('book')
+        .doc(docBook)
+        .collection("borrow")
+        .orderBy("startDate", descending: true)
+        .get();
+    if (response.docs.isNotEmpty) {
+      var item = response.docs.first;
+      BorrowBookModel borrowBookModel = BorrowBookModel.fromMap(item.data());
+      return borrowBookModel.status;
+    }
+    return false;
+  }
+
   Future<void> processCheck() async {
     await FirebaseFirestore.instance
         .collection('user')
         .doc(docUser)
-        .collection('borrow')
+        .collection("borrow")
+        .orderBy("startDate", descending: true)
         .get()
         .then((value) async {
       if (value.docs.isEmpty) {
-        final result = await Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => BorrowBook(bookModel: bookModel!, docUser: docUser!, docBook: docBook!))
-        );
-        if (result != null) {
-          Navigator.of(context).pop();
-        }
-        // MyDialog(context: context).confirmAction(
-        //     title: bookModel!.title,
-        //     message:
-        //     'เริ่ม ${showDate(currentDateTime)} \n คืน ${showDate(endDateTime!)}',
-        //     urlBook: bookModel!.cover,
-        //     okFunc: () {
-        //       Navigator.pop(context);
-        //       processBorrowBook();
-        //     });
-      } else {
-        bool status = false;
-        for (var item in value.docs) {
-          BorrowUserModel borrowUserModel =
-          BorrowUserModel.fromMap(item.data());
-          if (borrowUserModel.status) {
-            status = true;
+        bool isBookBorrow = await isBookBorrowed();
+        if (!isBookBorrow) {
+          final result = await Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => BorrowBook(bookModel: bookModel!, docUser: docUser!, docBook: docBook!))
+          );
+          if (result != null) {
+            Navigator.of(context).pop();
           }
+        } else {
+          MyDialog(context: context).normalDialog(
+              'หนังสือไม่ว่าง', 'ท่านสามารถจองไว้ก่อนได้เลย');
         }
 
-        if (status) {
+      } else {
+        // bool status = false;
+
+        var userItem = value.docs.first;
+        BorrowUserModel borrowUserModel = BorrowUserModel.fromMap(userItem.data());
+        bool isUserBorrow = borrowUserModel.status;
+        // for (var item in value.docs) {
+        //   BorrowUserModel borrowUserModel =
+        //   BorrowUserModel.fromMap(item.data());
+        //   if (borrowUserModel.status) {
+        //     status = true;
+        //   }
+        // }
+
+        if (isUserBorrow) {
           MyDialog(context: context)
               .normalDialog('ไม่สามามารถยืมได้', 'กรุณาคืนหนังสือที่ยืมอยู่ก่อน');
         } else {
-          final values = await FirebaseFirestore.instance
-              .collection('book')
-              .doc(docBook)
-              .collection('borrow')
-              .get();
 
-          if (values != null) {
-            bool statusBook = true; // true ==> หนังสือว่าง ยืมได้
-            for (var item in value.docs) {
-              BorrowBookModel borrowBookModel =
-              BorrowBookModel.fromMap(item.data());
-              if (borrowBookModel.status) {
-                statusBook = false;
-              }
-            }
+          bool isBookBorrow = await isBookBorrowed();
 
-            if (statusBook) {
-              final result = await Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => BorrowBook(bookModel: bookModel!, docUser: docUser!, docBook: docBook!))
-              );
-              if (result != null) {
-                Navigator.of(context).pop();
-              }
-              // MyDialog(context: context).confirmAction(
-              //     title: bookModel!.title,
-              //     message:
-              //     'เริ่ม ${showDate(currentDateTime)} \n คืน ${showDate(endDateTime!)}',
-              //     urlBook: bookModel!.cover,
-              //     okFunc: () {
-              //       Navigator.pop(context);
-              //       processBorrowBook();
-              //     });
-            } else {
-              MyDialog(context: context).normalDialog(
-                  'หนังสือไม่ว่าง', 'ท่านสามารถจองไว้ก่อนได้เลย');
+          if (!isBookBorrow) {
+            final result = await Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => BorrowBook(bookModel: bookModel!, docUser: docUser!, docBook: docBook!))
+            );
+            if (result != null) {
+              Navigator.of(context).pop();
             }
+          } else {
+            MyDialog(context: context).normalDialog(
+                'หนังสือไม่ว่าง', 'ท่านสามารถจองไว้ก่อนได้เลย');
           }
+
+          // final values = await FirebaseFirestore.instance
+          //     .collection('book')
+          //     .doc(docBook)
+          //     .collection("borrow")
+          //     .orderBy("startDate", descending: true)
+          //     .get();
+
+          // if (values != null) {
+          //   bool statusBook = true; // true ==> หนังสือว่าง ยืมได้
+          //   for (var item in value.docs) {
+          //     BorrowBookModel borrowBookModel =
+          //     BorrowBookModel.fromMap(item.data());
+          //     if (borrowBookModel.status) {
+          //       statusBook = false;
+          //     }
+          //   }
+          //
+          //   if (statusBook) {
+          //     final result = await Navigator.of(context).push(
+          //         MaterialPageRoute(builder: (context) => BorrowBook(bookModel: bookModel!, docUser: docUser!, docBook: docBook!))
+          //     );
+          //     if (result != null) {
+          //       Navigator.of(context).pop();
+          //     }
+          //   } else {
+          //     MyDialog(context: context).normalDialog(
+          //         'หนังสือไม่ว่าง', 'ท่านสามารถจองไว้ก่อนได้เลย');
+          //   }
+          // }
         }
       }
     });

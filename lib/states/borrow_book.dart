@@ -68,6 +68,21 @@ class _BorrowBookState extends State<BorrowBook> {
   _BorrowBookState(
       {required this.docUser, required this.docBook, required this.bookModel});
 
+  Future<bool> isBookBorrowed() async {
+    final response = await FirebaseFirestore.instance
+        .collection('book')
+        .doc(docBook)
+        .collection("borrow")
+        .orderBy("startDate", descending: true)
+        .get();
+    if (response.docs.isNotEmpty) {
+      var item = response.docs.first;
+      BorrowBookModel borrowBookModel = BorrowBookModel.fromMap(item.data());
+      return borrowBookModel.status;
+    }
+    return false;
+  }
+
   Future<void> processBorrowBook() async {
     setState(() {
       isLoading = true;
@@ -94,6 +109,8 @@ class _BorrowBookState extends State<BorrowBook> {
 
     print('borrowBookModel ===>> ${borrowBookModel.toMap()}');
 
+    bool isBookBorrow = await isBookBorrowed();
+
     await FirebaseFirestore.instance
         .collection('user')
         .doc(docUser)
@@ -101,6 +118,7 @@ class _BorrowBookState extends State<BorrowBook> {
         .doc()
         .set(borrowUserModel.toMap())
         .then((value) async {
+
       await FirebaseFirestore.instance
           .collection('book')
           .doc(docBook)
@@ -115,8 +133,8 @@ class _BorrowBookState extends State<BorrowBook> {
           Navigator.pop(context, true);
         });
 
-        // Navigator.pop(context);
       });
+
     });
   }
 
@@ -849,7 +867,7 @@ class _BorrowBookState extends State<BorrowBook> {
                       ? null
                       : isLoading
                           ? null
-                          : () {
+                          : () async {
                               showDialogConfirm();
                             },
                   child: isLoading
@@ -895,19 +913,39 @@ class _BorrowBookState extends State<BorrowBook> {
     return address;
   }
 
-  void showDialogConfirm() {
-    DateTime currentDateTime = DateTime.now();
-    DateTime endDateTime = DateTime(
-        currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
-    MyDialog(context: context).confirmAction(
-        title: bookModel.title,
-        message:
-            'เริ่ม ${showDate(currentDateTime)} \n คืน ${showDate(endDateTime)}',
-        urlBook: bookModel.cover,
-        okFunc: () {
-          Navigator.pop(context);
-          processBorrowBook();
-        });
+  Future showDialogConfirm() async{
+
+    setState(() {
+      isLoading = true;
+    });
+
+    bool isBookBorrow = await isBookBorrowed();
+
+    setState(() {
+      isLoading = false;
+    });
+
+    if (!isBookBorrow) {
+      DateTime currentDateTime = DateTime.now();
+      DateTime endDateTime = DateTime(
+          currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
+      MyDialog(context: context).confirmAction(
+          title: bookModel.title,
+          message:
+          'เริ่ม ${showDate(currentDateTime)} \n คืน ${showDate(endDateTime)}',
+          urlBook: bookModel.cover,
+          okFunc: () {
+            Navigator.pop(context);
+            processBorrowBook();
+          });
+    }  else {
+      setState(() {
+        isLoading = false;
+      });
+      MyDialog(context: context).normalDialog(
+          'หนังสือไม่ว่าง', 'กรุณากลับไปหน้าก่อนหน้าเพื่อจองหนังสือ');
+    }
+
   }
 
   String showDate(DateTime dateTime) {

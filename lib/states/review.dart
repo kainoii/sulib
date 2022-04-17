@@ -1,10 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:sulib/mdels/book-model.dart';
-import 'package:sulib/mdels/borrow_book_model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
 import 'package:sulib/states/review_detail.dart';
 import 'package:sulib/states/show_title.dart';
@@ -21,53 +19,72 @@ class Review extends StatefulWidget {
 class _ReviewState extends State<Review> {
 
 
-  String? docUser;
+  late String docUser;
 
   bool isLoading = false;
 
   List<String> docUserBorrowBookId = [];
 
-  List<BorrowUserModel> bookReviewsByUser = [];
-  List<BookModel> books = [];
-  List<String> docBookIds = [];
 
-  Stream<List<BorrowUserModel>> getUserBooksReviews() async* {
-    docUserBorrowBookId.clear();
-    bookReviewsByUser.clear();
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    findUserLogin();
+  }
+
+  void onRefresh() {
+    setState(() {
+      docUserBorrowBookId.clear();
+    });
+  }
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getUserBooksReviews() async {
     final value = await FirebaseFirestore.instance
                       .collection('user')
                       .doc(docUser)
-                      .collection('borrow')
-                      .where('status', isEqualTo: false)
+                      .collection("borrow")
+                      .where("status", isEqualTo: false)
                       .where('review', isNull: true)
                       .get();
-    if (value.docs.isNotEmpty) {
-      for (var item in value.docs) {
-        docUserBorrowBookId.add(item.id);
-        print("Book Id -> ${ item.id }");
-        final borrowUserModel = BorrowUserModel.fromMap(item.data());
+
+    return value.docs;
+  }
+
+  List<BorrowUserModel> getReviews(List<QueryDocumentSnapshot<Map<String, dynamic>>> reviews) {
+    List<BorrowUserModel> reviewList = [];
+    if (reviews.isNotEmpty) {
+      for (var review in reviews) {
+        docUserBorrowBookId.add(review.id);
+        // print("Book Id -> ${ review.id }");
+        final borrowUserModel = BorrowUserModel.fromMap(review.data());
         print("BookReviewUser -> ${ borrowUserModel.docBook }");
-        bookReviewsByUser.add(borrowUserModel);
+        reviewList.add(borrowUserModel);
       }
+    } else {
+      print('review is Empty');
     }
-    
-    yield bookReviewsByUser;
+    reviewList.sort((a, b) => a.startDate.compareTo(b.startDate));
+    reviewList = List.of(reviewList).reversed.toList();
+    return reviewList;
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getBooksFromFirebase(String docBook) async {
+
+    return await FirebaseFirestore.instance
+        .collection('book')
+        .doc(docBook)
+        .get();
   }
 
   Future<List<BookModel>> getBooks(List<String> documentBooks) async {
-    books.clear();
-    for (var docBooks in documentBooks) {
-      await FirebaseFirestore.instance
-                .collection('book')
-                .doc(docBooks)
-                .get()
-                .then((value) {
-              final bookModel = BookModel.fromMap(value.data()!);
-              books.add(bookModel);
-              print("Book title -> ${ bookModel.title }");
-            });
+    List<BookModel> bookList = [];
+    for(var docBook in documentBooks) {
+      final response = await getBooksFromFirebase(docBook);
+      BookModel bookModel = BookModel.fromMap(response.data()!);
+      bookList.add(bookModel);
     }
-    return books;
+    return bookList;
   }
 
   Future<void> findUserLogin() async {
@@ -77,7 +94,7 @@ class _ReviewState extends State<Review> {
     await FirebaseAuth.instance.authStateChanges().listen((event) {
       setState(() {
         docUser = event!.uid;
-        print('find User finish');
+
       });
     });
     setState(() {
@@ -85,11 +102,6 @@ class _ReviewState extends State<Review> {
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    findUserLogin();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,64 +113,97 @@ class _ReviewState extends State<Review> {
       ) 
       : Column(
         children: [
-          
+
           const Padding(
             padding:  EdgeInsets.symmetric(vertical: 10),
             child: ShowTitle(title: 'รีวิวการอ่านหนังสือ'),
           ),
 
           Expanded(
-            child: StreamBuilder(
-              stream: getUserBooksReviews(),
-              builder: (BuildContext context,AsyncSnapshot<List<BorrowUserModel>> snapshotBookReviews) {
-                if (!snapshotBookReviews.hasData) {
+            child: FutureBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+              future: getUserBooksReviews(),
+              builder: (context, snapshotReview) {
+                if (snapshotReview.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(color: Colors.teal,),
                   );
-                }
-                for (var element in bookReviewsByUser) {
-                  docBookIds.add(element.docBook);
-                }
-                return FutureBuilder(
-                  future: getBooks(docBookIds),
-                  builder: (BuildContext context,AsyncSnapshot<List<BookModel>> snapshotBooks) {
-                    if (!snapshotBooks.hasData) {
-                      return const Center(
-                        child: CircularProgressIndicator(color: Colors.green,),
-                      );
-                    }
-                    return (bookReviewsByUser.isNotEmpty)
-                    ? ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: bookReviewsByUser.length,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: EdgeInsets.only(top: (index == 0) ? 0 : 8 , bottom: (index == bookReviewsByUser.length - 1) ? 0 : 8),
-                          child: buildReviewBooksItem(bookReviewsByUser[index], books[index], docUserBorrowBookId[index])
-                        );
-                      },
-                    )
-                    : const Center(
-                      child: ShowText(
-                        text: "ไม่มีหนังสือสำหรับการรีวิว",
+                } else {
+                  if (snapshotReview.hasError) {
+                    return Center(
+                      child: Text('Error: ${ snapshotReview.error }'),
+                    );
+                  }
+                  List<BorrowUserModel> borrowUserModel = getReviews(snapshotReview.data!);
+                  if (borrowUserModel.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'ไม่มีหนังสือให้รีวิว',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: MyContant.dark
+                        ),
                       ),
                     );
-                  },
-                );
+                  }
+                  return buildBookDataWidget(borrowUserModel);
+                }
               },
-            )
-            
-          )
+            ),
+          ),
 
         ],
       ),
     );
   }
 
-  Widget buildReviewBooksItem (BorrowUserModel review, BookModel book, String docUserBorrowBook) {
-    DateTime date = review.startDate.toDate();
+  Widget buildBookDataWidget(List<BorrowUserModel> borrowUserModel) {
+
+    List<String> docBookIds = [];
+
+    for (var element in borrowUserModel) {
+      docBookIds.add(element.docBook);
+    }
+    return FutureBuilder<List<BookModel>>(
+      future: getBooks(docBookIds),
+      builder: (context, snapshotBooks) {
+        if (snapshotBooks.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.green,),
+          );
+        } else {
+          if (snapshotBooks.hasError) {
+            return Center(
+              child: ShowText(text: 'Error: ${snapshotBooks.error}'),
+            );
+          }
+          List<BookModel> bookModel = snapshotBooks.data!;
+          bookModel.forEach((element) {
+            print("Future Finish book data: ${element.title}");
+          });
+          return buildListBookReview(borrowUserModel, bookModel);
+        }
+      },
+    );
+  }
+
+  Widget buildListBookReview(List<BorrowUserModel> borrowUserModel, List<BookModel> bookModel) {
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: bookModel.length,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemBuilder: (context, index) {
+        return Padding(
+            padding: EdgeInsets.only(top: (index == 0) ? 0 : 8 , bottom: (index == borrowUserModel.length - 1) ? 0 : 8),
+            child: buildReviewBooksItem(borrowUserModel[index], bookModel[index], docUserBorrowBookId[index])
+        );
+      },
+    );
+  }
+
+  Widget buildReviewBooksItem (BorrowUserModel borrowUserModel, BookModel bookModel, String docUserBorrowBook) {
+    DateTime date = borrowUserModel.startDate.toDate();
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
@@ -168,9 +213,9 @@ class _ReviewState extends State<Review> {
             _createRoute(
               ReviewDetail(
                 docBorrowId: docUserBorrowBook, 
-                docUser: docUser!, 
-                borrowUserModel: review, 
-                bookModel: book,
+                docUser: docUser,
+                borrowUserModel: borrowUserModel,
+                bookModel: bookModel,
               )
             )
           );
@@ -178,13 +223,7 @@ class _ReviewState extends State<Review> {
           if (response != null) {
             Map<String, dynamic> data = response;
             if (data['isReview']) {
-              setState(() {
-                int indexRemove = bookReviewsByUser.indexOf(review);
-                bookReviewsByUser.removeAt(indexRemove);
-                docBookIds.removeAt(indexRemove);
-                books.removeAt(indexRemove);
-                docUserBorrowBookId.removeAt(indexRemove);
-              });
+              onRefresh();
             }
           }
         },
@@ -201,7 +240,7 @@ class _ReviewState extends State<Review> {
                 Expanded(
                   flex: 1,
                   child: CachedNetworkImage(
-                    imageUrl: book.cover,
+                    imageUrl: bookModel.cover,
                     fit: BoxFit.fitHeight,
                     width: 100,
                   ),
@@ -216,7 +255,7 @@ class _ReviewState extends State<Review> {
                       Align(
                           alignment: Alignment.topLeft,
                           child: Text(
-                            book.title,
+                            bookModel.title,
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -243,10 +282,9 @@ class _ReviewState extends State<Review> {
                               _createRoute(
                                 ReviewDetail(
                                   docBorrowId: docUserBorrowBook, 
-                                  docUser: docUser!, 
-                                  borrowUserModel: 
-                                  review, bookModel: 
-                                  book,
+                                  docUser: docUser,
+                                  borrowUserModel: borrowUserModel,
+                                  bookModel: bookModel,
                                 )
                               )
                             );
@@ -254,13 +292,7 @@ class _ReviewState extends State<Review> {
                             if (response != null) {
                               Map<String, dynamic> data = response;
                               if (data['isReview']) {
-                                setState(() {
-                                  int indexRemove = bookReviewsByUser.indexOf(review);
-                                  bookReviewsByUser.removeAt(indexRemove);
-                                  docBookIds.removeAt(indexRemove);
-                                  books.removeAt(indexRemove);
-                                  docUserBorrowBookId.removeAt(indexRemove);
-                                });
+                                onRefresh();
                               }
                             }
                           } ,
