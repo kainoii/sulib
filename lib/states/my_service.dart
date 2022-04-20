@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:sulib/mdels/reserve_model.dart';
+import 'package:sulib/mdels/user_model.dart';
+import 'package:sulib/states/basket_summary.dart';
 // import 'package:sulib/states/ecard.dart';
 import 'package:sulib/states/history.dart';
 import 'package:sulib/states/home.dart';
@@ -24,6 +26,7 @@ class MyService extends StatefulWidget {
 }
 
 class _MyServiceState extends State<MyService> {
+
   var bottomNavigationBarItems = <BottomNavigationBarItem>[];
   var titles = <String>[
     'Home',
@@ -158,6 +161,11 @@ class _MyServiceState extends State<MyService> {
           //         processDisplayNoti("หัวข้อทดสอบ", "รายละเอียดทดสอบ"),
           //     icon: Icon(Icons.android)),
           IconButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => BasketSummary())),
+            icon: const Icon(Icons.shopping_cart)
+          ),
+          const SizedBox(width: 16,),
+          IconButton(
               onPressed: () async {
                 await FirebaseAuth.instance.signOut().then((value) =>
                     Navigator.pushNamedAndRemoveUntil(
@@ -166,7 +174,7 @@ class _MyServiceState extends State<MyService> {
               icon: const Icon(Icons.logout))
         ],
         backgroundColor: MyContant.primary,
-        title: const Text('My_Service'),
+        title: const Text('My Service'),
       ),
       bottomNavigationBar: BottomNavigationBar(
         onTap: (value) {

@@ -9,6 +9,6 @@ class Showlogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(path ?? 'images/logo.png');
+    return Image.asset(path ?? 'assets/logo.png');
   }
 }

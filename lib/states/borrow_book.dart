@@ -57,7 +57,7 @@ class _BorrowBookState extends State<BorrowBook> {
 
   bool isLoading = false;
 
-  late AddressSend addressUser;
+  late Address addressUser;
 
   bool isSuccessFormAddress = false;
 
@@ -771,7 +771,11 @@ class _BorrowBookState extends State<BorrowBook> {
   }
 
   void setAddressUser() {
-    AddressSend address = AddressSend(
+    Address address = Address(
+      id: "0",
+      firstName: 'สมชาย',
+      lastname: 'ล่ายปี้เอ๋งเอ๋ง',
+      phone: '0874487856',
       addressNumber: controllerAddressNumber.text.toString(),
       building: controllerBuilding.text.isNotEmpty
           ? controllerBuilding.text.toString()
@@ -785,6 +789,7 @@ class _BorrowBookState extends State<BorrowBook> {
       subDistrict: controllerSubDistrict.text.toString(),
       province: controllerProvince.text.toString(),
       zipCode: controllerZipCode.text.toString(),
+      isDefault: false
     );
     setState(() {
       addressUser = address;
