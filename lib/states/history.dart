@@ -11,6 +11,7 @@ import 'package:sulib/mdels/book-model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
 import 'package:sulib/mdels/refund_model.dart';
 import 'package:sulib/services/user_service.dart';
+import 'package:sulib/states/show_list_recive_book.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/utility/my_dialog.dart';
 
@@ -326,26 +327,18 @@ class _HistoryState extends State<History> {
         children: [
           const SizedBox(height: 16,),
           buildBorrowButtonWidget(),
+          const SizedBox(height: 4,),
+          buildReserveButtonWidget(),
           buildBorrowListWidget(),
           const SizedBox(height: 24,),
         ],
       ),
     );
   }
-  
-  Widget buildBorrowButtonWidget() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-    child: ElevatedButton(
-      style: ElevatedButton.styleFrom(
-          primary: MyContant.primary,
-          onPrimary: Colors.white,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8)
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          minimumSize: const Size.fromHeight(50)
-      ),
-      onPressed: ()=> showModalBottomSheet(
+
+  Widget buildBorrowButtonWidget() => ButtonHistoryWidget(
+    title: 'แสดงที่อยู่สำหรับคืนหนังสือ',
+    onPressed: ()=> showModalBottomSheet(
         context: context,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
@@ -355,14 +348,11 @@ class _HistoryState extends State<History> {
         ),
         builder: (context) => buildBottomSheet(),
       ),
-      child: const Text(
-        'แสดงที่อยู่สำหรับคืนหนังสือ',
-        style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700
-        ),
-      ),
-    ),
+  );
+
+  Widget buildReserveButtonWidget() => ButtonHistoryWidget(
+    title: 'แสดงรายการหนังสือที่จอง',
+    onPressed: ()=> Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ShowListReceiveBook()))
   );
   
   Widget buildBorrowListWidget() {
@@ -416,8 +406,6 @@ class _HistoryState extends State<History> {
                     dialogConfirmRefund(refundModel);
                   },
                 );
-                // MockBorrowUserModel borrow = userBorrow[index];
-                // return buildBorrowItemWidget(borrow);
               },
               separatorBuilder: (context, index) => const SizedBox(height: 8,),
             );
@@ -426,273 +414,6 @@ class _HistoryState extends State<History> {
       }
     );
   }
-  
-  // Widget buildBorrowItemWidget(MockBorrowUserModel borrow) {
-  //
-  //   DateTime currentDate = DateTime.now();
-  //   DateTime endDate = borrow.endDate.toDate();
-  //   int diffDate = endDate.difference(currentDate).inDays;
-  //
-  //   return Opacity(
-  //     opacity: (borrow.status) ? 1 : 0.5,
-  //     child: Padding(
-  //       padding: const EdgeInsets.symmetric(horizontal: 8),
-  //       child: Container(
-  //         padding: const EdgeInsets.symmetric(vertical: 8),
-  //         decoration: const BoxDecoration(
-  //           color: Colors.white,
-  //           borderRadius: BorderRadius.only(
-  //             topLeft: Radius.circular(24),
-  //             bottomRight: Radius.circular(24),
-  //           ),
-  //           boxShadow: [
-  //             BoxShadow(
-  //               offset: Offset(1, 3),
-  //               blurRadius: 5,
-  //               spreadRadius: 1,
-  //               color: Colors.grey
-  //             ),
-  //             BoxShadow(
-  //                 offset: Offset(-1, -3),
-  //                 blurRadius: 5,
-  //                 spreadRadius: 1,
-  //                 color: Colors.white
-  //             ),
-  //           ]
-  //         ),
-  //         child: Column(
-  //           children: [
-  //             //build title in one list
-  //
-  //             borrow.status
-  //             ? Padding(
-  //               padding: const EdgeInsets.all(8),
-  //               child: RichText(
-  //                 text: TextSpan(
-  //                   text: 'เหลือเวลาอีก ',
-  //                   style: const TextStyle(
-  //                     fontSize: 16,
-  //                     fontWeight: FontWeight.w700,
-  //                     color: Colors.black
-  //                   ),
-  //                   children: [
-  //                     TextSpan(
-  //                       text: '$diffDate',
-  //                       style: TextStyle(
-  //                         fontSize: 32,
-  //                         fontWeight: FontWeight.w700,
-  //                         color: MyContant.dark
-  //                       )
-  //                     ),
-  //                     const TextSpan(
-  //                         text: ' วัน',
-  //                     ),
-  //                   ]
-  //                 )
-  //               ),
-  //             )
-  //             : const SizedBox(height: 16,),
-  //
-  //             buildBookDetailItemWidget(borrow.docBooks!),
-  //
-  //             const SizedBox(height: 12,),
-  //
-  //             Padding(
-  //               padding: const EdgeInsets.symmetric(horizontal: 8),
-  //               child: Row(
-  //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                 children: [
-  //                   Padding(
-  //                     padding: const EdgeInsets.only(left: 16),
-  //                     child: Text(
-  //                       'ยืมเมื่อวันที่ ${endDate.day}-${endDate.month}-${endDate.year}',
-  //                       style: const TextStyle(
-  //                         color: Colors.grey,
-  //                         fontWeight: FontWeight.w500,
-  //                         fontSize: 16
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   borrow.status ?
-  //                   Container(
-  //                     height: 40,
-  //                     decoration: BoxDecoration(
-  //                       borderRadius: BorderRadius.circular(100),
-  //                       gradient: LinearGradient(
-  //                           colors: [Colors.green.shade500, Colors.green.shade700],
-  //                           begin: Alignment.centerLeft,
-  //                           end: Alignment.centerRight
-  //                       ),
-  //                     ),
-  //                     child: ElevatedButton(
-  //                       style: ElevatedButton.styleFrom(
-  //                           primary: Colors.transparent,
-  //                           onPrimary: Colors.white,
-  //                           elevation: 0,
-  //                           shape: RoundedRectangleBorder(
-  //                               borderRadius: BorderRadius.circular(100)
-  //                           ),
-  //                           padding:const EdgeInsets.symmetric(horizontal: 24, vertical: 4)
-  //                       ),
-  //                       onPressed: () {},
-  //                       child: const Text(
-  //                         'คืนหนังสือ',
-  //                         style: TextStyle(
-  //                             fontSize: 16,
-  //                             fontWeight: FontWeight.w700
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   )
-  //                   : Container()
-  //                 ],
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-  //
-  // Widget buildBookDetailItemWidget(List<String> docBooks) {
-  //   if (docBooks.length > 3) {
-  //     return buildBookItemVertical(docBooks);
-  //   }
-  //   return buildBookItemHorizontal(docBooks);
-  // }
-  //
-  // Widget buildBookItemHorizontal(List<String> docBooks) {
-  //   return Container(
-  //     padding: const EdgeInsets.symmetric(horizontal: 8),
-  //     child: Column(
-  //       children: [
-  //         for (int i=0; i < docBooks.length; i++)
-  //           Container(
-  //             height: 100,
-  //             padding: const EdgeInsets.all(8),
-  //             child: Row(
-  //               children: [
-  //                 Container(
-  //                   child: CachedNetworkImage(
-  //                     imageUrl: booksList[i].cover,
-  //                     fit: BoxFit.contain,
-  //                   ),
-  //                   decoration: BoxDecoration(
-  //                       boxShadow: [
-  //                         BoxShadow(
-  //                             offset: Offset(-1,-3),
-  //                             blurRadius: 3,
-  //                             spreadRadius: 1,
-  //                             color: Colors.white
-  //                         ),
-  //                         BoxShadow(
-  //                             offset: Offset(1,3),
-  //                             blurRadius: 3,
-  //                             spreadRadius: 1,
-  //                             color: Colors.grey.shade300
-  //                         )
-  //                       ]
-  //                   ),
-  //                 ),
-  //                 const SizedBox(width: 16,),
-  //                 Expanded(
-  //                     child: Column(
-  //                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                       crossAxisAlignment: CrossAxisAlignment.start,
-  //                       children: [
-  //                         Text(
-  //                           booksList[i].title,
-  //                           style: const TextStyle(
-  //                               color: Colors.black,
-  //                               fontWeight: FontWeight.w700,
-  //                               fontSize: 16
-  //                           ),
-  //                           maxLines: 2,
-  //                           overflow: TextOverflow.ellipsis,
-  //                         ),
-  //                         Text(
-  //                           'ISBN ${booksList[i].isbnNumber}',
-  //                           style: const TextStyle(
-  //                               color: Colors.grey,
-  //                               fontWeight: FontWeight.w500,
-  //                               fontSize: 16
-  //                           ),
-  //                           maxLines: 1,
-  //                           overflow: TextOverflow.ellipsis,
-  //                         ),
-  //                       ],
-  //                     )
-  //                 )
-  //               ],
-  //             ),
-  //           ),
-  //       ],
-  //     ),
-  //   );
-  // }
-  //
-  // Widget buildBookItemVertical(List<String> docBooks) {
-  //   return Container(
-  //     height: 200,
-  //     child: ListView.separated(
-  //       shrinkWrap: true,
-  //       itemCount: docBooks.length,
-  //       scrollDirection: Axis.horizontal,
-  //       itemBuilder: (context, index) {
-  //         return Container(
-  //           width: 100,
-  //           height: 200,
-  //           padding: const EdgeInsets.all(8),
-  //           child: Column(
-  //             mainAxisAlignment: MainAxisAlignment.center,
-  //             children: [
-  //               Expanded(
-  //                 child: Container(
-  //                   decoration: const BoxDecoration(
-  //                     boxShadow: [
-  //                       BoxShadow(
-  //                         offset: Offset(1,3),
-  //                         blurRadius: 3,
-  //                         spreadRadius: 1,
-  //                         color: Colors.grey
-  //                       ),
-  //                       BoxShadow(
-  //                           offset: Offset(-1,-3),
-  //                           blurRadius: 3,
-  //                           spreadRadius: 1,
-  //                           color: Colors.white
-  //                       )
-  //                     ]
-  //                   ),
-  //                   child: CachedNetworkImage(
-  //                     imageUrl: booksList[index].cover,
-  //                     fit: BoxFit.contain,
-  //                   ),
-  //                 ),
-  //               ),
-  //               Padding(
-  //                 padding: const EdgeInsets.only(top: 4, bottom: 8),
-  //                 child: Text(
-  //                   booksList[index].title,
-  //                   style: const TextStyle(
-  //                     color: Colors.black,
-  //                     fontSize: 14,
-  //                     fontWeight: FontWeight.w700
-  //                   ),
-  //                   textAlign: TextAlign.center,
-  //                   maxLines: 3,
-  //                   overflow: TextOverflow.ellipsis,
-  //                 ),
-  //               )
-  //             ],
-  //           ),
-  //         );
-  //       },
-  //       separatorBuilder: (context, index) => const SizedBox(width: 8,),
-  //     ),
-  //   );
-  // }
 
   Widget buildBottomSheet() {
 
@@ -1126,4 +847,39 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
     );
   }
 
+
 }
+
+  class ButtonHistoryWidget extends StatelessWidget {
+    
+    final String title;
+    final Function() onPressed;
+
+    const ButtonHistoryWidget({ Key? key, required this.title, required this.onPressed }) : super(key: key);
+  
+    @override
+    Widget build(BuildContext context) {
+      return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+          primary: MyContant.primary,
+          onPrimary: Colors.white,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8)
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          minimumSize: const Size.fromHeight(50)
+      ),
+      onPressed: onPressed,
+      child: Text(
+        title,
+        style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700
+        ),
+      ),
+    ),
+  );
+    }
+  }
