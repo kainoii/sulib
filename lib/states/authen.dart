@@ -2,6 +2,8 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sulib/controller/auth_controller.dart';
+import 'package:sulib/main.dart';
 import 'package:sulib/states/my_service.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/utility/my_dialog.dart';
@@ -64,16 +66,29 @@ class _AuthenState extends State<Authen> {
             MyDialog(context: context)
                 .normalDialog('Have Space', 'Please Fill Every Blank');
           } else {
-            await FirebaseAuth.instance
-                .signInWithEmailAndPassword(email: email!, password: password!)
-                .then((value) => Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MyService(),
-                    ),
-                    (route) => false))
-                .catchError((onError) => MyDialog(context: context)
-                    .normalDialog(onError.code, onError.message));
+            // await FirebaseAuth.instance
+            //     .signInWithEmailAndPassword(email: email!, password: password!)
+            //     .then((value) => Navigator.pushAndRemoveUntil(
+            //         context,
+            //         MaterialPageRoute(
+            //           builder: (context) => MyService(),
+            //         ),
+            //         (route) => false))
+            //     .catchError((onError) => MyDialog(context: context)
+            //         .normalDialog(onError.code, onError.message));
+
+            await AuthController.instance.login(email!, password!);
+
+            // try {
+            //   await FirebaseAuth.instance
+            //       .signInWithEmailAndPassword(
+            //       email: email!,
+            //       password: password!
+            //   );
+            // } on FirebaseAuthException catch (e) {
+            //   print(e);
+            // }
+
           }
         },
       );

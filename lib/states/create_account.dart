@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:sulib/controller/auth_controller.dart';
 import 'package:sulib/mdels/user_model.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/utility/my_dialog.dart';
@@ -60,7 +61,8 @@ class _CreateAccountState extends State<CreateAccount> {
                           'Have space ?', 'Please Fill Every Blank');
                     } else {
                       print('no space');
-                      processCreateAcconut();
+
+                      processCreateAccount();
                     }
                   },
                   label: 'Create New Account',
@@ -74,27 +76,44 @@ class _CreateAccountState extends State<CreateAccount> {
     );
   }
 
-  Future<void> processCreateAcconut() async {
-    await FirebaseAuth.instance
-        .createUserWithEmailAndPassword(
-      email: email!,
-      password: password!,
-    )
-        .then((value) async {
-      String uid = value.user!.uid;
-      print('uid ==> $uid');
+  Future<void> processCreateAccount() async {
 
-      UserModel model =
-          UserModel(name: name!, email: email!, password: password!);
+    final value = await AuthController.instance.register(email!, password!);
 
-      await FirebaseFirestore.instance
-          .collection('user')
-          .doc(uid)
-          .set(model.toMap())
-          .then((value) => Navigator.pop(context));
+    String userId = value!.user!.uid;
 
-    }).catchError((onError) {
+    UserModel model =
+    UserModel(name: name!, email: email!, password: password!);
+
+    await FirebaseFirestore.instance
+        .collection(Collection.user)
+        .doc(userId)
+        .set(model.toMap())
+        // .then((value) => Navigator.pop(context))
+        .catchError((onError) {
       MyDialog(context: context).normalDialog(onError.code, onError.message);
     });
+
+    // await FirebaseAuth.instance
+    //     .createUserWithEmailAndPassword(
+    //   email: email!,
+    //   password: password!,
+    // )
+    //     .then((value) async {
+    //   String uid = value.user!.uid;
+    //   print('uid ==> $uid');
+    //
+    //   UserModel model =
+    //       UserModel(name: name!, email: email!, password: password!);
+    //
+    //   await FirebaseFirestore.instance
+    //       .collection('user')
+    //       .doc(uid)
+    //       .set(model.toMap())
+    //       .then((value) => Navigator.pop(context));
+    //
+    // }).catchError((onError) {
+    //   MyDialog(context: context).normalDialog(onError.code, onError.message);
+    // });
   }
 }

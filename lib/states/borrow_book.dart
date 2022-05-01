@@ -92,14 +92,14 @@ class _BorrowBookState extends State<BorrowBook> {
     DateTime endDateTime = DateTime(
         currentDateTime.year, currentDateTime.month, currentDateTime.day + 7);
 
-    BorrowUserModel borrowUserModel = BorrowUserModel(
-      docBook: docBook,
-      startDate: Timestamp.fromDate(currentDateTime),
-      endDate: Timestamp.fromDate(endDateTime),
-      status: true,
-    );
+    // BorrowUserModel borrowUserModel = BorrowUserModel(
+    //   docBook: docBook,
+    //   startDate: Timestamp.fromDate(currentDateTime),
+    //   endDate: Timestamp.fromDate(endDateTime),
+    //   status: true,
+    // );
 
-    print('borrowUserModel ===>> ${borrowUserModel.toMap()}');
+    // print('borrowUserModel ===>> ${borrowUserModel.toMap()}');
 
     BorrowBookModel borrowBookModel = BorrowBookModel(
         docUser: docUser,
@@ -111,31 +111,31 @@ class _BorrowBookState extends State<BorrowBook> {
 
     bool isBookBorrow = await isBookBorrowed();
 
-    await FirebaseFirestore.instance
-        .collection('user')
-        .doc(docUser)
-        .collection('borrow')
-        .doc()
-        .set(borrowUserModel.toMap())
-        .then((value) async {
-
-      await FirebaseFirestore.instance
-          .collection('book')
-          .doc(docBook)
-          .collection('borrow')
-          .doc()
-          .set(borrowBookModel.toMap())
-          .then((value) {
-        sendEmail().then((value) {
-          setState(() {
-            isLoading = false;
-          });
-          Navigator.pop(context, true);
-        });
-
-      });
-
-    });
+    // await FirebaseFirestore.instance
+    //     .collection('user')
+    //     .doc(docUser)
+    //     .collection('borrow')
+    //     .doc()
+    //     .set(borrowUserModel.toMap())
+    //     .then((value) async {
+    //
+    //   await FirebaseFirestore.instance
+    //       .collection('book')
+    //       .doc(docBook)
+    //       .collection('borrow')
+    //       .doc()
+    //       .set(borrowBookModel.toMap())
+    //       .then((value) {
+    //     sendEmail().then((value) {
+    //       setState(() {
+    //         isLoading = false;
+    //       });
+    //       Navigator.pop(context, true);
+    //     });
+    //
+    //   });
+    //
+    // });
   }
 
   Future sendEmail() async {
@@ -772,9 +772,8 @@ class _BorrowBookState extends State<BorrowBook> {
 
   void setAddressUser() {
     Address address = Address(
-      id: "0",
       firstName: 'สมชาย',
-      lastname: 'ล่ายปี้เอ๋งเอ๋ง',
+        lastName: 'ล่ายปี้เอ๋งเอ๋ง',
       phone: '0874487856',
       addressNumber: controllerAddressNumber.text.toString(),
       building: controllerBuilding.text.isNotEmpty
@@ -958,4 +957,5 @@ class _BorrowBookState extends State<BorrowBook> {
     String result = dateFormat.format(dateTime);
     return result;
   }
+
 }

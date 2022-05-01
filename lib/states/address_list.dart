@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:sulib/controller/user_controller.dart';
 import 'package:sulib/mdels/address.dart';
 import 'package:sulib/states/address_form.dart';
 import 'package:sulib/utility/my_constant.dart';
@@ -14,9 +16,8 @@ class _AddressListState extends State<AddressList> {
 
   List<Address> addressUserList = [
     Address(
-      id: "0",
       firstName: "สมชาย1",
-      lastname: "ล่ายปี้เอ๋งเอ๋ง",
+        lastName: "ล่ายปี้เอ๋งเอ๋ง",
       phone: "0908745548",
       building: "Super Condo",
       addressNumber: "12/34",
@@ -30,9 +31,8 @@ class _AddressListState extends State<AddressList> {
       isDefault: true
     ),
     Address(
-        id: "1",
         firstName: "สมหญิง2",
-        lastname: "เอ๋งเอ๋ง",
+        lastName: "เอ๋งเอ๋ง",
         phone: "0897774412",
         building: "Batman Condo",
         addressNumber: "12/345",
@@ -46,9 +46,8 @@ class _AddressListState extends State<AddressList> {
         isDefault: false
     ),
     Address(
-        id: "2",
         firstName: "สมชาย3",
-        lastname: "ล่ายปี้เอ๋งเอ๋ง",
+        lastName: "ล่ายปี้เอ๋งเอ๋ง",
         phone: "0908745548",
         addressNumber: "5",
         moo: "2",
@@ -60,9 +59,8 @@ class _AddressListState extends State<AddressList> {
         isDefault: false
     ),
     Address(
-        id: "3",
         firstName: "สมหญิง4",
-        lastname: "เอ๋งเอ๋ง",
+        lastName: "เอ๋งเอ๋ง",
         phone: "0897774412",
         addressNumber: "12/75",
         street: "ศักดิ์ดิเรท",
@@ -82,42 +80,80 @@ class _AddressListState extends State<AddressList> {
         title: const Text('เลือกสถานที่จัดส่ง'),
         backgroundColor: MyContant.primary,
         actions: [
-          TextButton(
-            onPressed: ()=> Navigator.of(context).push(MaterialPageRoute(builder: (context) => AddressForm())),
-            child: const Text(
-              'เพิ่มที่อยู่',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.white
+          GetBuilder<UserController>(
+            builder: (controller) => (controller.user.address!.isNotEmpty)
+             ? TextButton(
+              onPressed: () => navigateToAddressForm(context: context),
+              child: const Text(
+                'เพิ่มที่อยู่',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white
+                ),
               ),
-            ),
-          )
+            )
+             : Container()
+          ),
+
         ],
       ),
       body: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ListView(
-          children: [
-            const SizedBox(height: 16,),
-            buildAddressList(),
-            const SizedBox(height: 16,),
-          ],
-        ),
+        child: GetBuilder<UserController>(
+          builder: (controller) => (controller.user.address!.isNotEmpty)
+              ? ListView(
+            children: [
+              const SizedBox(height: 16,),
+              buildAddressList(),
+              const SizedBox(height: 16,),
+            ],
+          )
+              : buildInsertListAddressWidget()
+        )
+      ),
+    );
+  }
+
+  Widget buildInsertListAddressWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            onPressed: ()=> navigateToAddressForm(context: context),
+            iconSize: 40,
+            color: Colors.grey,
+            icon: const Icon(Icons.add_business),
+          ),
+          const SizedBox(height: 24,),
+          const Text(
+            'กรุณากด + เพื่อเพิ่มที่อยู่',
+            style: TextStyle(
+                color: Colors.grey,
+                fontSize: 20,
+                fontWeight: FontWeight.w700
+            ),
+          )
+        ],
       ),
     );
   }
 
   Widget buildAddressList() {
-    return ListView.separated(
-      primary: false,
-      shrinkWrap: true,
-      itemCount: addressUserList.length,
-      itemBuilder: (context, index) {
-        Address address = addressUserList[index];
-        return buildAddressItemWidget(address);
-      },
-      separatorBuilder: (context, index) => const SizedBox(height: 10,),
+    return GetBuilder<UserController>(
+      builder: (controller) => ListView.separated(
+        primary: false,
+        shrinkWrap: true,
+        reverse: true,
+        itemCount: controller.user.address!.length,
+        itemBuilder: (context, index) {
+          Address address = controller.user.address![index];
+          return buildAddressItemWidget(address);
+        },
+        separatorBuilder: (context, index) => const SizedBox(height: 10,),
+      ),
     );
   }
 
@@ -125,7 +161,12 @@ class _AddressListState extends State<AddressList> {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       splashColor: Colors.transparent,
-      onTap: () => Navigator.of(context).pop(),
+      onTap: () {
+        // context.read<UserModelProvider>().addressUser = address;
+        //Todo onClick select Address
+        UserController.instance.selectDefaultAddress(address: address);
+        Navigator.of(context).pop();
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -189,7 +230,7 @@ class _AddressListState extends State<AddressList> {
                     ),
                   ),
                   IconButton(
-                      onPressed: ()=> Navigator.of(context).push(MaterialPageRoute(builder: (context)=> AddressForm(addressUser: address,))),
+                      onPressed: () => navigateToAddressForm(context: context, address: address),
                       icon: const Icon(Icons.edit)
                   )
                 ],
@@ -227,6 +268,25 @@ class _AddressListState extends State<AddressList> {
         ),
       ),
     );
+  }
+
+  navigateToAddressForm({required BuildContext context, Address? address}) {
+    if (address != null) {
+      //edit address
+      UserController.instance.isSetDefaultAddressForm = address.isDefault;
+      Navigator.of(context).push(
+          MaterialPageRoute(
+              builder: (context) => AddressForm(addressUser: address,)
+          )
+      );
+    } else {
+      //add address
+      // if don't have dataList setDefault = true and cannot change value
+      // if have dataList setDefault = false and can change value
+      UserController.instance.isSetDefaultAddressForm = (UserController.instance.user.address!.isEmpty);
+      Navigator.of(context).pushNamed(MyContant.routeAddressForm);
+    }
+
   }
 }
 

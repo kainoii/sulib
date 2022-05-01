@@ -4,21 +4,21 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:sulib/controller/auth_controller.dart';
 import 'package:sulib/mdels/book-model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
 import 'package:sulib/mdels/review-model.dart';
+import 'package:sulib/services/user_service.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/widgets/show_text.dart';
 
 class ReviewDetail extends StatefulWidget {
-  final String docBorrowId;
   final String docUser;
   final BorrowUserModel borrowUserModel;
   final BookModel bookModel;
 
   const ReviewDetail({ 
-    Key? key, 
-    required this.docBorrowId,
+    Key? key,
     required this.docUser, 
     required this.borrowUserModel, 
     required this.bookModel 
@@ -27,7 +27,6 @@ class ReviewDetail extends StatefulWidget {
   @override
   // ignore: no_logic_in_create_state
   State<ReviewDetail> createState() => _ReviewDetailState(
-    docBorrowId: docBorrowId,
     docUser: docUser,
     borrowUserModel: borrowUserModel,
     bookModel: bookModel
@@ -36,13 +35,11 @@ class ReviewDetail extends StatefulWidget {
 
 class _ReviewDetailState extends State<ReviewDetail> {
 
-  final String docBorrowId;
   final String docUser;
   final BorrowUserModel borrowUserModel;
   final BookModel bookModel;
 
   _ReviewDetailState({
-    required this.docBorrowId,
     required this.docUser, 
     required this.borrowUserModel, 
     required this.bookModel
@@ -249,10 +246,11 @@ class _ReviewDetailState extends State<ReviewDetail> {
                     );
 
                     Map<String, dynamic> data = {
-                      'review' : review.toMapReview()
+                      'review' : review.toMap()
                     };
-                await updateUserReview(data);
-                await updateBookReview(data);
+                String userId = AuthController.instance.getUserId();
+                await updateUserReview(userId, data);
+                await updateBookReview(userId, data);
                 if (isSuccessdocUser && isSuccessdocBook) {
                   setState(() {
                     isLoading = false;
@@ -300,45 +298,34 @@ class _ReviewDetailState extends State<ReviewDetail> {
     ),
   );
 
-  Future updateUserReview(Map<String, dynamic> data) async{
+  Future updateUserReview(String userId, Map<String, dynamic> data) async{
 
-    FirebaseFirestore.instance
-      .collection('user')
-      .doc(docUser)
-      .collection('borrow')
-      .doc(docBorrowId)
-      .update(data).then((value) {
-        setState(() {
-          isSuccessdocUser = true;
-        });
-      });
-    
-  }
+    String bookId = borrowUserModel.docBook;
 
-  Future updateBookReview(Map<String, dynamic> data) async{
-
-    List<String> docBookBorrowUserList = await getdocBookBorrowUserId();
+    List<String> docBookBorrowUserList = await getdocUserBorrowByBookId(bookId);
 
     String docBookBorrowUser = docBookBorrowUserList.first;
 
-    final response = await FirebaseFirestore.instance
-                      .collection('book')
-                      .doc(borrowUserModel.docBook)
-                      .collection('borrow')
-                      .doc(docBookBorrowUser)
-                      .update(data)
-                      .then((value) {
-                        isSuccessdocBook = true;
-                      });
+    await DatabaseService().updateUserBorrow(userId, docBookBorrowUser, data).then((value) => isSuccessdocUser = true);
+    
   }
 
-  Future<List<String>> getdocBookBorrowUserId() async{
+  Future updateBookReview(String userId, Map<String, dynamic> data) async{
+
+    List<String> docBookBorrowUserList = await getdocBookBorrowByUserId(userId);
+
+    String docBookBorrowUser = docBookBorrowUserList.first;
+    
+    await DatabaseService().updateBookBorrow(borrowUserModel.docBook, docBookBorrowUser, data).then((value) => isSuccessdocBook = true);
+  }
+
+  Future<List<String>> getdocBookBorrowByUserId(String userId) async{
     List<String> result = [];
     final value = await FirebaseFirestore.instance
-                      .collection('book')
+                      .collection(Collection.book)
                       .doc(borrowUserModel.docBook)
-                      .collection('borrow')
-                      .where('docUser', isEqualTo: docUser)
+                      .collection(Collection.borrow)
+                      .where('docUser', isEqualTo: userId)
                       .where('startDate', isEqualTo: borrowUserModel.startDate)
                       .where('endDate', isEqualTo: borrowUserModel.endDate)
                       .where('status', isEqualTo: false)
@@ -346,8 +333,28 @@ class _ReviewDetailState extends State<ReviewDetail> {
     if (value.docs.isNotEmpty) {
       for (var item in value.docs) {
           result.add(item.id);
-          print("========= id BookBorrowUser = ${ item.id }");
+          print("========= id BookBorrow = ${ item.id }");
         }
+    }
+    return result;
+  }
+
+  Future<List<String>> getdocUserBorrowByBookId(String bookId) async {
+    List<String> result = [];
+    final value = await FirebaseFirestore.instance
+        .collection(Collection.user)
+        .doc(docUser)
+        .collection(Collection.borrow)
+        .where('docBook', isEqualTo: bookId)
+        .where('startDate', isEqualTo: borrowUserModel.startDate)
+        .where('endDate', isEqualTo: borrowUserModel.endDate)
+        .where('status', isEqualTo: false)
+        .get();
+    if (value.docs.isNotEmpty) {
+      for (var item in value.docs) {
+        result.add(item.id);
+        print("========= id UserBorrow = ${ item.id }");
+      }
     }
     return result;
   }

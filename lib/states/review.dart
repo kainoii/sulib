@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sulib/controller/auth_controller.dart';
 import 'package:sulib/mdels/book-model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
 import 'package:sulib/states/review_detail.dart';
@@ -18,9 +19,6 @@ class Review extends StatefulWidget {
 
 class _ReviewState extends State<Review> {
 
-
-  late String docUser;
-
   bool isLoading = false;
 
   List<String> docUserBorrowBookId = [];
@@ -30,7 +28,6 @@ class _ReviewState extends State<Review> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    findUserLogin();
   }
 
   void onRefresh() {
@@ -40,10 +37,11 @@ class _ReviewState extends State<Review> {
   }
 
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getUserBooksReviews() async {
+    String userId = AuthController.instance.getUserId();
     final value = await FirebaseFirestore.instance
-                      .collection('user')
-                      .doc(docUser)
-                      .collection("borrow")
+                      .collection(Collection.user)
+                      .doc(userId)
+                      .collection(Collection.borrow)
                       .where("status", isEqualTo: false)
                       .where('review', isNull: true)
                       .get();
@@ -56,7 +54,7 @@ class _ReviewState extends State<Review> {
     if (reviews.isNotEmpty) {
       for (var review in reviews) {
         docUserBorrowBookId.add(review.id);
-        // print("Book Id -> ${ review.id }");
+        print("Book Id -> ${ review.id }");
         final borrowUserModel = BorrowUserModel.fromMap(review.data());
         print("BookReviewUser -> ${ borrowUserModel.docBook }");
         reviewList.add(borrowUserModel);
@@ -72,7 +70,7 @@ class _ReviewState extends State<Review> {
   Future<DocumentSnapshot<Map<String, dynamic>>> getBooksFromFirebase(String docBook) async {
 
     return await FirebaseFirestore.instance
-        .collection('book')
+        .collection(Collection.book)
         .doc(docBook)
         .get();
   }
@@ -86,21 +84,21 @@ class _ReviewState extends State<Review> {
     }
     return bookList;
   }
-
-  Future<void> findUserLogin() async {
-      setState(() {
-        isLoading = true;
-      });
-    await FirebaseAuth.instance.authStateChanges().listen((event) {
-      setState(() {
-        docUser = event!.uid;
-
-      });
-    });
-    setState(() {
-        isLoading = false;
-    });
-  }
+  //
+  // Future<void> findUserLogin() async {
+  //     setState(() {
+  //       isLoading = true;
+  //     });
+  //   await FirebaseAuth.instance.authStateChanges().listen((event) {
+  //     setState(() {
+  //       docUser = event!.uid;
+  //
+  //     });
+  //   });
+  //   setState(() {
+  //       isLoading = false;
+  //   });
+  // }
 
 
   @override
@@ -212,8 +210,7 @@ class _ReviewState extends State<Review> {
           final response = await Navigator.of(context).push(
             _createRoute(
               ReviewDetail(
-                docBorrowId: docUserBorrowBook, 
-                docUser: docUser,
+                docUser: AuthController.instance.getUserId(),
                 borrowUserModel: borrowUserModel,
                 bookModel: bookModel,
               )
@@ -281,8 +278,7 @@ class _ReviewState extends State<Review> {
                             final response = await Navigator.of(context).push(
                               _createRoute(
                                 ReviewDetail(
-                                  docBorrowId: docUserBorrowBook, 
-                                  docUser: docUser,
+                                  docUser: AuthController.instance.getUserId(),
                                   borrowUserModel: borrowUserModel,
                                   bookModel: bookModel,
                                 )
@@ -335,6 +331,5 @@ class _ReviewState extends State<Review> {
       },
     );
   }
-
 
 }

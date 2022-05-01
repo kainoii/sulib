@@ -1,18 +1,18 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clipboard/clipboard.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:collection/collection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:sulib/controller/auth_controller.dart';
 import 'package:sulib/mdels/book-model.dart';
-import 'package:sulib/mdels/borrow_book_model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
-import 'package:sulib/mdels/mock_borrow_user_model.dart';
-import 'package:sulib/states/show_list_recive_book.dart';
-import 'package:sulib/states/show_progress.dart';
-import 'package:sulib/states/show_title.dart';
+import 'package:sulib/mdels/refund_model.dart';
+import 'package:sulib/services/user_service.dart';
 import 'package:sulib/utility/my_constant.dart';
-import 'package:sulib/widgets/show_button.dart';
-import 'package:sulib/widgets/show_text.dart';
+import 'package:sulib/utility/my_dialog.dart';
 
 
 class History extends StatefulWidget {
@@ -33,118 +33,75 @@ class _HistoryState extends State<History> {
   var bookModels = <BookModel>[];
   var docBorrowUsers = <String>[];
 
-  final List<MockBorrowUserModel> userBorrow = [
-    MockBorrowUserModel(
-      docBooks: [
-        'sdlfjepofow',
-        'sdlfjepofow',
-        'sdlfjepofow',
-        'sdlfjepofow',
-        'sdlfjepofow',
-      ],
-      startDate: Timestamp.now(),
-      endDate: Timestamp.fromDate(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day + 4)),
-      status: true,
-    ),
-    MockBorrowUserModel(
-      docBooks: [
-        'sdlfjepofow',
-      ],
-      startDate: Timestamp.now(),
-      endDate: Timestamp.fromDate(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day + 4)),
-      status: true,
-    ),
-    MockBorrowUserModel(
-      docBooks: [
-        'sdlfjepofow',
-        'sdkfjewoifjewopf'
-      ],
-      startDate: Timestamp.now(),
-      endDate: Timestamp.fromDate(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day + 7)),
-      status: false,
-    ),
-    MockBorrowUserModel(
-      docBooks: [
-        'sdlfjepofow',
-        'sdkfjewoifjewopf',
-        'soifjewoifjeofj'
-      ],
-      startDate: Timestamp.now(),
-      endDate: Timestamp.fromDate(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day + 7)),
-      status: false,
-    ),
-  ];
-
-  final List<BookModel> booksList = [
-    BookModel(
-        cover: 'https://firebasestorage.googleapis.com/v0/b/sulibary.appspot.com/o/cover%2Fkm06.jpg?alt=media&token=1c86a9fd-217d-44fe-9d7c-f9bbbe3f52ec',
-        isbnNumber: '9786163810823',
-        publisher: 'บริษัทอินส์พัล',
-        author: 'บุญร่วม เทียมจันทร์ และ ศรัญญา วิชชาธรรม',
-        bookCatetory: 'กฎหมาย',
-        bookCode: '02007510',
-        detail: 'อัพเดตรัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 ทั้ง 279 มาตรา พร้อมรวบรวมหัวข้อเรื่องทุกมาตรา จับประเด็นง่ายและชัดเจน!',
-        numberOfPage: '258',
-        title: 'รัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 พร้อมหัวข้อเรื่องทุกมาตรา ฉบับสมบูรณ์',
-        yearOfImport: '2018-04-10'
-    ),
-    BookModel(
-        cover: 'https://firebasestorage.googleapis.com/v0/b/sulibary.appspot.com/o/cover%2Fkm08.jpg?alt=media&token=aeaefc78-2eb7-4cd1-aa01-d45469c3757f',
-        isbnNumber: '9786163810823',
-        publisher: 'บริษัทอินส์พัล',
-        author: 'บุญร่วม เทียมจันทร์ และ ศรัญญา วิชชาธรรม',
-        bookCatetory: 'กฎหมาย',
-        bookCode: '02007510',
-        detail: 'อัพเดตรัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 ทั้ง 279 มาตรา พร้อมรวบรวมหัวข้อเรื่องทุกมาตรา จับประเด็นง่ายและชัดเจน!',
-        numberOfPage: '258',
-        title: 'รัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 พร้อมหัวข้อเรื่องทุกมาตรา ฉบับสมบูรณ์',
-        yearOfImport: '2018-04-10'
-    ),
-    BookModel(
-        cover: 'https://firebasestorage.googleapis.com/v0/b/sulibary.appspot.com/o/cover%2Ftr01.jpg?alt=media&token=9534e0c4-90b0-4200-aa5e-a33e9e81c083',
-        isbnNumber: '9786163810823',
-        publisher: 'บริษัทอินส์พัล',
-        author: 'บุญร่วม เทียมจันทร์ และ ศรัญญา วิชชาธรรม',
-        bookCatetory: 'กฎหมาย',
-        bookCode: '02007510',
-        detail: 'อัพเดตรัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 ทั้ง 279 มาตรา พร้อมรวบรวมหัวข้อเรื่องทุกมาตรา จับประเด็นง่ายและชัดเจน!',
-        numberOfPage: '258',
-        title: 'รัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 พร้อมหัวข้อเรื่องทุกมาตรา ฉบับสมบูรณ์',
-        yearOfImport: '2018-04-10'
-    ),
-    BookModel(
-        cover: 'https://firebasestorage.googleapis.com/v0/b/sulibary.appspot.com/o/cover%2Fkm09.jpg?alt=media&token=7b24e14e-eeeb-4dcf-b11d-1c85d6321000',
-        isbnNumber: '9786163810823',
-        publisher: 'บริษัทอินส์พัล',
-        author: 'บุญร่วม เทียมจันทร์ และ ศรัญญา วิชชาธรรม',
-        bookCatetory: 'กฎหมาย',
-        bookCode: '02007510',
-        detail: 'อัพเดตรัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 ทั้ง 279 มาตรา พร้อมรวบรวมหัวข้อเรื่องทุกมาตรา จับประเด็นง่ายและชัดเจน!',
-        numberOfPage: '258',
-        title: 'รัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 พร้อมหัวข้อเรื่องทุกมาตรา ฉบับสมบูรณ์',
-        yearOfImport: '2018-04-10'
-    ),
-    BookModel(
-        cover: 'https://firebasestorage.googleapis.com/v0/b/sulibary.appspot.com/o/cover%2Ftr02.jpg?alt=media&token=e61bbc9b-262f-4d6d-b106-2c7706a12e41',
-        isbnNumber: '9786163810823',
-        publisher: 'บริษัทอินส์พัล',
-        author: 'บุญร่วม เทียมจันทร์ และ ศรัญญา วิชชาธรรม',
-        bookCatetory: 'กฎหมาย',
-        bookCode: '02007510',
-        detail: 'อัพเดตรัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 ทั้ง 279 มาตรา พร้อมรวบรวมหัวข้อเรื่องทุกมาตรา จับประเด็นง่ายและชัดเจน!',
-        numberOfPage: '258',
-        title: 'รัฐธรรมนูญแห่งราชอาณาจักรไทย พุทธศักราช 2560 พร้อมหัวข้อเรื่องทุกมาตรา ฉบับสมบูรณ์',
-        yearOfImport: '2018-04-10'
-    ),
-  ];
-
-
   String? docIdBookWhereTrue;
 
   @override
   void initState() {
     super.initState();
-    findUserAndReadBook();
+    // findUserAndReadBook();
+  }
+
+  Future<List<BookModel>> getAllBookData(List<String> allBooksIds) async {
+    List<BookModel> bookModels = [];
+    for(var bookId in allBooksIds) {
+      BookModel bookModel = await DatabaseService().getBookById(bookId);
+      bookModels.add(bookModel);
+    }
+    return bookModels;
+  }
+
+  Future<Map<String,List<RefundModel>>> findBookRefund() async {
+    String userId = AuthController.instance.getUserId();
+    List<BorrowUserModel> borrowUserModels = await DatabaseService().getAllBookBorrowByUser(userId);
+    List<String> allDocBookId = borrowUserModels.map((userBorrow) => userBorrow.docBook).toList();
+    List<BookModel> bookModels = await getAllBookData(allDocBookId);
+    List<RefundModel> refundList = [];
+    for(int i=0; i < borrowUserModels.length; i++) {
+      RefundModel refundModel = RefundModel(bookModel: bookModels[i], borrowUserModel: borrowUserModels[i]);
+      refundList.add(refundModel);
+    }
+    final groupsByRefund = groupBy(refundList, (RefundModel refund) => refund.borrowUserModel.borrowId);
+    return groupsByRefund;
+  }
+
+  Future<List<String>> findDocumentBookBorrowByBookId(List<String> documentBookIds) async {
+    List<String> documentBookBorrows = [];
+    for (var docBook in documentBookIds) {
+      String documentBookBorrow = await DatabaseService().getDocumentBookBorrowById(docBook);
+      documentBookBorrows.add(documentBookBorrow);
+    }
+    return documentBookBorrows;
+  }
+
+  Future<List<String>> findDocumentUserBorrowByUserId(String userId) async {
+
+    List<String> docUserBorrows = await DatabaseService().getDocumentUserBorrowByUserId(userId);
+    return docUserBorrows;
+  }
+
+  Future updateBookBorrow(String bookId, String docBookBorrow, Map<String, dynamic> data) async {
+    await DatabaseService().updateBookBorrow(bookId, docBookBorrow, data);
+  }
+
+  Future updateUserBorrow(String userId, String docUserBorrow, Map<String, dynamic> data) async {
+    await DatabaseService().updateUserBorrow(userId, docUserBorrow, data);
+  }
+
+  Future refundAllBook(List<RefundModel> refundModels) async{
+    String userId = AuthController.instance.getUserId();
+    List<String> bookIds = refundModels.map((refund) => refund.borrowUserModel.docBook).toList();
+    List<String> documentBookBorrow = await findDocumentBookBorrowByBookId(bookIds);
+    List<String> documentUserBorrow = await findDocumentUserBorrowByUserId(userId);
+    Map<String, dynamic> data = {
+      'status' : false
+    };
+    for(int i=0; i < documentBookBorrow.length; i++) {
+      String bookId = refundModels[i].borrowUserModel.docBook;
+      String docBookBorrow = documentBookBorrow[i];
+      String docUserBorrow = documentUserBorrow[i];
+      await updateBookBorrow(bookId, docBookBorrow, data).then((value) => print('Update docBook: ${docBookBorrow[i]}'));
+      await updateUserBorrow(userId, docUserBorrow, data).then((value) => print('Update docUser: ${docUserBorrow[i]}'));
+    }
   }
 
   Future<void> findUserAndReadBook() async {
@@ -174,14 +131,14 @@ class _HistoryState extends State<History> {
                 BorrowUserModel.fromMap(item.data());
             borrowUserModels.add(borrowUserModel);
 
-            await FirebaseFirestore.instance
-                .collection('book')
-                .doc(borrowUserModel.docBook)
-                .get()
-                .then((value) {
-              BookModel bookModel = BookModel.fromMap(value.data()!);
-              bookModels.add(bookModel);
-            });
+            // await FirebaseFirestore.instance
+            //     .collection('book')
+            //     .doc(borrowUserModel.docBook)
+            //     .get()
+            //     .then((value) {
+            //   BookModel bookModel = BookModel.fromMap(value.data()!);
+            //   bookModels.add(bookModel);
+            // });
 
   
           }
@@ -351,7 +308,7 @@ class _HistoryState extends State<History> {
     //             ),
     // );
 
-    return buildMockDataWidget();
+    return buildRefundList();
   }
 
   String showBorrow(bool status) {
@@ -362,7 +319,7 @@ class _HistoryState extends State<History> {
     return result;
   }
 
-  Widget buildMockDataWidget() {
+  Widget buildRefundList() {
     return Scaffold(
       body: ListView(
         shrinkWrap: true,
@@ -409,85 +366,509 @@ class _HistoryState extends State<History> {
   );
   
   Widget buildBorrowListWidget() {
-    return ListView.separated(
-      primary: false,
-      shrinkWrap: true,
-      itemCount: userBorrow.length,
-      itemBuilder: (context, index) {
-        MockBorrowUserModel borrow = userBorrow[index];
-        return buildBorrowItemWidget(borrow);
-      },
-      separatorBuilder: (context, index) => const SizedBox(height: 8,),
+    return FutureBuilder<Map<String,List<RefundModel>>>(
+      future: findBookRefund(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(),);
+        }
+        else if (snapshot.connectionState == ConnectionState.none) {
+          return const Center(child: Text("ไม่มีรายการหนังสือที่ยืม"));
+        } else {
+          if (snapshot.hasError) {
+            //show Error
+            return Center(
+              child: RichText(
+                text: TextSpan(
+                  text: 'some error is occurred:\n',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16
+                  ),
+                  children: [
+                    TextSpan(
+                      text: '${snapshot.error}',
+                      style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16
+                      )
+                    )
+                  ]
+                ),
+              )
+            );
+          }
+          else {
+            final mapRefund = snapshot.data!;
+            List<List<RefundModel>> listRefundFromMap = [];
+            mapRefund.forEach((key, value) => listRefundFromMap.add(value));
+            return ListView.separated(
+              primary: false,
+              shrinkWrap: true,
+              itemCount: listRefundFromMap.length,
+              itemBuilder: (context, index) {
+                List<RefundModel> refundModel = listRefundFromMap[index];
+                return RefundBookItemWidget(
+                  refundModels: refundModel,
+                  onPressed: () async{
+                    dialogConfirmRefund(refundModel);
+                  },
+                );
+                // MockBorrowUserModel borrow = userBorrow[index];
+                // return buildBorrowItemWidget(borrow);
+              },
+              separatorBuilder: (context, index) => const SizedBox(height: 8,),
+            );
+          }
+        }
+      }
     );
   }
   
-  Widget buildBorrowItemWidget(MockBorrowUserModel borrow) {
+  // Widget buildBorrowItemWidget(MockBorrowUserModel borrow) {
+  //
+  //   DateTime currentDate = DateTime.now();
+  //   DateTime endDate = borrow.endDate.toDate();
+  //   int diffDate = endDate.difference(currentDate).inDays;
+  //
+  //   return Opacity(
+  //     opacity: (borrow.status) ? 1 : 0.5,
+  //     child: Padding(
+  //       padding: const EdgeInsets.symmetric(horizontal: 8),
+  //       child: Container(
+  //         padding: const EdgeInsets.symmetric(vertical: 8),
+  //         decoration: const BoxDecoration(
+  //           color: Colors.white,
+  //           borderRadius: BorderRadius.only(
+  //             topLeft: Radius.circular(24),
+  //             bottomRight: Radius.circular(24),
+  //           ),
+  //           boxShadow: [
+  //             BoxShadow(
+  //               offset: Offset(1, 3),
+  //               blurRadius: 5,
+  //               spreadRadius: 1,
+  //               color: Colors.grey
+  //             ),
+  //             BoxShadow(
+  //                 offset: Offset(-1, -3),
+  //                 blurRadius: 5,
+  //                 spreadRadius: 1,
+  //                 color: Colors.white
+  //             ),
+  //           ]
+  //         ),
+  //         child: Column(
+  //           children: [
+  //             //build title in one list
+  //
+  //             borrow.status
+  //             ? Padding(
+  //               padding: const EdgeInsets.all(8),
+  //               child: RichText(
+  //                 text: TextSpan(
+  //                   text: 'เหลือเวลาอีก ',
+  //                   style: const TextStyle(
+  //                     fontSize: 16,
+  //                     fontWeight: FontWeight.w700,
+  //                     color: Colors.black
+  //                   ),
+  //                   children: [
+  //                     TextSpan(
+  //                       text: '$diffDate',
+  //                       style: TextStyle(
+  //                         fontSize: 32,
+  //                         fontWeight: FontWeight.w700,
+  //                         color: MyContant.dark
+  //                       )
+  //                     ),
+  //                     const TextSpan(
+  //                         text: ' วัน',
+  //                     ),
+  //                   ]
+  //                 )
+  //               ),
+  //             )
+  //             : const SizedBox(height: 16,),
+  //
+  //             buildBookDetailItemWidget(borrow.docBooks!),
+  //
+  //             const SizedBox(height: 12,),
+  //
+  //             Padding(
+  //               padding: const EdgeInsets.symmetric(horizontal: 8),
+  //               child: Row(
+  //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //                 children: [
+  //                   Padding(
+  //                     padding: const EdgeInsets.only(left: 16),
+  //                     child: Text(
+  //                       'ยืมเมื่อวันที่ ${endDate.day}-${endDate.month}-${endDate.year}',
+  //                       style: const TextStyle(
+  //                         color: Colors.grey,
+  //                         fontWeight: FontWeight.w500,
+  //                         fontSize: 16
+  //                       ),
+  //                     ),
+  //                   ),
+  //                   borrow.status ?
+  //                   Container(
+  //                     height: 40,
+  //                     decoration: BoxDecoration(
+  //                       borderRadius: BorderRadius.circular(100),
+  //                       gradient: LinearGradient(
+  //                           colors: [Colors.green.shade500, Colors.green.shade700],
+  //                           begin: Alignment.centerLeft,
+  //                           end: Alignment.centerRight
+  //                       ),
+  //                     ),
+  //                     child: ElevatedButton(
+  //                       style: ElevatedButton.styleFrom(
+  //                           primary: Colors.transparent,
+  //                           onPrimary: Colors.white,
+  //                           elevation: 0,
+  //                           shape: RoundedRectangleBorder(
+  //                               borderRadius: BorderRadius.circular(100)
+  //                           ),
+  //                           padding:const EdgeInsets.symmetric(horizontal: 24, vertical: 4)
+  //                       ),
+  //                       onPressed: () {},
+  //                       child: const Text(
+  //                         'คืนหนังสือ',
+  //                         style: TextStyle(
+  //                             fontSize: 16,
+  //                             fontWeight: FontWeight.w700
+  //                         ),
+  //                       ),
+  //                     ),
+  //                   )
+  //                   : Container()
+  //                 ],
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
+  //
+  // Widget buildBookDetailItemWidget(List<String> docBooks) {
+  //   if (docBooks.length > 3) {
+  //     return buildBookItemVertical(docBooks);
+  //   }
+  //   return buildBookItemHorizontal(docBooks);
+  // }
+  //
+  // Widget buildBookItemHorizontal(List<String> docBooks) {
+  //   return Container(
+  //     padding: const EdgeInsets.symmetric(horizontal: 8),
+  //     child: Column(
+  //       children: [
+  //         for (int i=0; i < docBooks.length; i++)
+  //           Container(
+  //             height: 100,
+  //             padding: const EdgeInsets.all(8),
+  //             child: Row(
+  //               children: [
+  //                 Container(
+  //                   child: CachedNetworkImage(
+  //                     imageUrl: booksList[i].cover,
+  //                     fit: BoxFit.contain,
+  //                   ),
+  //                   decoration: BoxDecoration(
+  //                       boxShadow: [
+  //                         BoxShadow(
+  //                             offset: Offset(-1,-3),
+  //                             blurRadius: 3,
+  //                             spreadRadius: 1,
+  //                             color: Colors.white
+  //                         ),
+  //                         BoxShadow(
+  //                             offset: Offset(1,3),
+  //                             blurRadius: 3,
+  //                             spreadRadius: 1,
+  //                             color: Colors.grey.shade300
+  //                         )
+  //                       ]
+  //                   ),
+  //                 ),
+  //                 const SizedBox(width: 16,),
+  //                 Expanded(
+  //                     child: Column(
+  //                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: [
+  //                         Text(
+  //                           booksList[i].title,
+  //                           style: const TextStyle(
+  //                               color: Colors.black,
+  //                               fontWeight: FontWeight.w700,
+  //                               fontSize: 16
+  //                           ),
+  //                           maxLines: 2,
+  //                           overflow: TextOverflow.ellipsis,
+  //                         ),
+  //                         Text(
+  //                           'ISBN ${booksList[i].isbnNumber}',
+  //                           style: const TextStyle(
+  //                               color: Colors.grey,
+  //                               fontWeight: FontWeight.w500,
+  //                               fontSize: 16
+  //                           ),
+  //                           maxLines: 1,
+  //                           overflow: TextOverflow.ellipsis,
+  //                         ),
+  //                       ],
+  //                     )
+  //                 )
+  //               ],
+  //             ),
+  //           ),
+  //       ],
+  //     ),
+  //   );
+  // }
+  //
+  // Widget buildBookItemVertical(List<String> docBooks) {
+  //   return Container(
+  //     height: 200,
+  //     child: ListView.separated(
+  //       shrinkWrap: true,
+  //       itemCount: docBooks.length,
+  //       scrollDirection: Axis.horizontal,
+  //       itemBuilder: (context, index) {
+  //         return Container(
+  //           width: 100,
+  //           height: 200,
+  //           padding: const EdgeInsets.all(8),
+  //           child: Column(
+  //             mainAxisAlignment: MainAxisAlignment.center,
+  //             children: [
+  //               Expanded(
+  //                 child: Container(
+  //                   decoration: const BoxDecoration(
+  //                     boxShadow: [
+  //                       BoxShadow(
+  //                         offset: Offset(1,3),
+  //                         blurRadius: 3,
+  //                         spreadRadius: 1,
+  //                         color: Colors.grey
+  //                       ),
+  //                       BoxShadow(
+  //                           offset: Offset(-1,-3),
+  //                           blurRadius: 3,
+  //                           spreadRadius: 1,
+  //                           color: Colors.white
+  //                       )
+  //                     ]
+  //                   ),
+  //                   child: CachedNetworkImage(
+  //                     imageUrl: booksList[index].cover,
+  //                     fit: BoxFit.contain,
+  //                   ),
+  //                 ),
+  //               ),
+  //               Padding(
+  //                 padding: const EdgeInsets.only(top: 4, bottom: 8),
+  //                 child: Text(
+  //                   booksList[index].title,
+  //                   style: const TextStyle(
+  //                     color: Colors.black,
+  //                     fontSize: 14,
+  //                     fontWeight: FontWeight.w700
+  //                   ),
+  //                   textAlign: TextAlign.center,
+  //                   maxLines: 3,
+  //                   overflow: TextOverflow.ellipsis,
+  //                 ),
+  //               )
+  //             ],
+  //           ),
+  //         );
+  //       },
+  //       separatorBuilder: (context, index) => const SizedBox(width: 8,),
+  //     ),
+  //   );
+  // }
 
+  Widget buildBottomSheet() {
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Align(
+            alignment: Alignment.topRight,
+            child: IconButton(
+              onPressed: ()=> Navigator.of(context).pop(),
+              icon: const Icon(
+                Icons.close,
+                size: 40,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16,),
+          const Text(
+            'ที่อยู่สำหรับจัดส่ง',
+            style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 24
+            ),
+          ),
+          const SizedBox(height: 8,),
+          const Divider(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Container(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        MyContant.addressLibrary.building!,
+                        style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18
+                        ),
+                      ),
+                      Text(
+                        'เบอร์โทร ${MyContant.addressLibrary.phone}',
+                        style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18
+                        ),
+                      ),
+                      Text(
+                        MyContant.addressLibrary.getAddressSummary(),
+                        style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  FlutterClipboard.copy(MyContant.addressLibrary.copyAddressSummary()).then((value) => print('Copied!'));
+                  // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("คัดลอกเรียบร้อยแล้ว"), duration: Duration(seconds: 1),));
+                },
+                icon: const Icon(
+                  Icons.file_copy,
+                  color: Colors.grey,
+                  size: 30,
+                ),
+                tooltip: 'Copied!',
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  dialogConfirmRefund(List<RefundModel> refundModels) {
+    return MyDialog(context: context)
+      .warningDialog(
+        title: "คุณต้องการคืนหนังสือใช่ไหม",
+        okFunc: () async{
+          Navigator.of(context).pop();
+          await refundAllBook(refundModels).then((value) {
+            setState(() {});
+          });
+        }
+    );
+  }
+}
+
+class RefundBookItemWidget extends StatefulWidget {
+
+  final List<RefundModel> refundModels;
+  final Function() onPressed;
+
+  const RefundBookItemWidget({
+    Key? key,
+    required this.refundModels,
+    required this.onPressed
+  }) : super(key: key);
+
+  @override
+  State<RefundBookItemWidget> createState() => _RefundBookItemWidgetState(refundModels: refundModels, onPressed: onPressed);
+}
+
+class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
+
+  final List<RefundModel> refundModels;
+  final Function() onPressed;
+
+  _RefundBookItemWidgetState({required this.refundModels, required this.onPressed});
+
+  bool isLoading = false;
+
+  toggleIsLoading() {
+    setState(() {
+      isLoading = !isLoading;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     DateTime currentDate = DateTime.now();
-    DateTime endDate = borrow.endDate.toDate();
-    int diffDate = endDate.difference(currentDate).inDays;
-
+    DateTime startDate = refundModels.first.borrowUserModel.startDate.toDate();
+    DateTime endDate = refundModels.first.borrowUserModel.endDate.toDate();
+    final diffDate = endDate.difference(currentDate);
     return Opacity(
-      opacity: (borrow.status) ? 1 : 0.5,
+      opacity: (refundModels.first.borrowUserModel.status) ? 1 : 0.5,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              bottomRight: Radius.circular(24),
-            ),
-            boxShadow: [
-              BoxShadow(
-                offset: Offset(1, 3),
-                blurRadius: 5,
-                spreadRadius: 1,
-                color: Colors.grey
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
               ),
-              BoxShadow(
-                  offset: Offset(-1, -3),
-                  blurRadius: 5,
-                  spreadRadius: 1,
-                  color: Colors.white
-              ),
-            ]
+              boxShadow: [
+                BoxShadow(
+                    offset: Offset(1, 3),
+                    blurRadius: 5,
+                    spreadRadius: 1,
+                    color: Colors.grey
+                ),
+                BoxShadow(
+                    offset: Offset(-1, -3),
+                    blurRadius: 5,
+                    spreadRadius: 1,
+                    color: Colors.white
+                ),
+              ]
           ),
           child: Column(
             children: [
               //build title in one list
-
-              borrow.status
+              (refundModels.first.borrowUserModel.status)
               ? Padding(
                 padding: const EdgeInsets.all(8),
-                child: RichText(
-                  text: TextSpan(
-                    text: 'เหลือเวลาอีก ',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black
-                    ),
-                    children: [
-                      TextSpan(
-                        text: '$diffDate',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          color: MyContant.dark
-                        )
-                      ),
-                      const TextSpan(
-                          text: ' วัน',
-                      ),
-                    ]
-                  )
-                ),
+                child: buildTextCountdownWidget(diffDate.inDays)
               )
               : const SizedBox(height: 16,),
 
-              buildBookDetailItemWidget(borrow.docBooks!),
+              buildBookDetailItemWidget(refundModels),
 
               const SizedBox(height: 12,),
 
@@ -499,15 +880,15 @@ class _HistoryState extends State<History> {
                     Padding(
                       padding: const EdgeInsets.only(left: 16),
                       child: Text(
-                        'ยืมเมื่อวันที่ ${endDate.day}-${endDate.month}-${endDate.year}',
+                        'ยืมเมื่อวันที่ ${startDate.day}-${startDate.month}-${startDate.year}',
                         style: const TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16
                         ),
                       ),
                     ),
-                    borrow.status ?
+                    (refundModels.first.borrowUserModel.status) ?
                     Container(
                       height: 40,
                       decoration: BoxDecoration(
@@ -518,25 +899,27 @@ class _HistoryState extends State<History> {
                             end: Alignment.centerRight
                         ),
                       ),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            primary: Colors.transparent,
-                            onPrimary: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(100)
+                      child: (isLoading)
+                        ? const CircularProgressIndicator(color: Colors.green,)
+                        : ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              primary: Colors.transparent,
+                              onPrimary: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(100)
+                              ),
+                              padding:const EdgeInsets.symmetric(horizontal: 24, vertical: 4)
+                          ),
+                          onPressed: onPressed,
+                          child: const Text(
+                            'คืนหนังสือ',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700
                             ),
-                            padding:const EdgeInsets.symmetric(horizontal: 24, vertical: 4)
-                        ),
-                        onPressed: () {},
-                        child: const Text(
-                          'คืนหนังสือ',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700
                           ),
                         ),
-                      ),
                     )
                     : Container()
                   ],
@@ -549,19 +932,66 @@ class _HistoryState extends State<History> {
     );
   }
 
-  Widget buildBookDetailItemWidget(List<String> docBooks) {
-    if (docBooks.length > 3) {
-      return buildBookItemVertical(docBooks);
+  Widget buildTextCountdownWidget(int diffDate) {
+    if (diffDate < 0) {
+      return Text(
+        'เกินเวลาคืน ${-diffDate} วัน',
+        style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: MyContant.dark
+        ),
+      );
     }
-    return buildBookItemHorizontal(docBooks);
+    if (diffDate == 0) {
+      return Text(
+        'วันนี้วันสุดท้าย',
+        style: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w700,
+          color: MyContant.dark
+        ),
+      );
+    } else {
+      return RichText(
+          text: TextSpan(
+              text: 'เหลือเวลาอีก ',
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black
+              ),
+              children: [
+                TextSpan(
+                    text: '${diffDate}',
+                    style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        color: MyContant.dark
+                    )
+                ),
+                const TextSpan(
+                  text: ' วัน',
+                ),
+              ]
+          )
+      );
+    }
   }
 
-  Widget buildBookItemHorizontal(List<String> docBooks) {
+  Widget buildBookDetailItemWidget(List<RefundModel> refundModel) {
+    if (refundModel.length > 3) {
+      return buildBookItemVertical(refundModel);
+    }
+    return buildBookItemHorizontal(refundModel);
+  }
+
+  Widget buildBookItemHorizontal(List<RefundModel> refundModels) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         children: [
-          for (int i=0; i < docBooks.length; i++)
+          for (int i=0; i < refundModels.length; i++)
             Container(
               height: 100,
               padding: const EdgeInsets.all(8),
@@ -569,7 +999,7 @@ class _HistoryState extends State<History> {
                 children: [
                   Container(
                     child: CachedNetworkImage(
-                      imageUrl: booksList[i].cover,
+                      imageUrl: refundModels[i].bookModel.cover,
                       fit: BoxFit.contain,
                     ),
                     decoration: BoxDecoration(
@@ -595,18 +1025,25 @@ class _HistoryState extends State<History> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            booksList[i].title,
-                            style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                refundModels[i].bookModel.title,
+                                style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.start,
+                              ),
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
+                          const SizedBox(height: 8,),
                           Text(
-                            'ISBN ${booksList[i].isbnNumber}',
+                            'ISBN ${refundModels[i].bookModel.isbnNumber}',
                             style: const TextStyle(
                                 color: Colors.grey,
                                 fontWeight: FontWeight.w500,
@@ -626,12 +1063,13 @@ class _HistoryState extends State<History> {
     );
   }
 
-  Widget buildBookItemVertical(List<String> docBooks) {
+  Widget buildBookItemVertical(List<RefundModel> refundModels) {
     return Container(
       height: 200,
       child: ListView.separated(
         shrinkWrap: true,
-        itemCount: docBooks.length,
+        itemCount: refundModels.length,
+        physics: (refundModels.first.borrowUserModel.status) ? AlwaysScrollableScrollPhysics() : NeverScrollableScrollPhysics(),
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index) {
           return Container(
@@ -644,23 +1082,23 @@ class _HistoryState extends State<History> {
                 Expanded(
                   child: Container(
                     decoration: const BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          offset: Offset(1,3),
-                          blurRadius: 3,
-                          spreadRadius: 1,
-                          color: Colors.grey
-                        ),
-                        BoxShadow(
-                            offset: Offset(-1,-3),
-                            blurRadius: 3,
-                            spreadRadius: 1,
-                            color: Colors.white
-                        )
-                      ]
+                        boxShadow: [
+                          BoxShadow(
+                              offset: Offset(1,3),
+                              blurRadius: 3,
+                              spreadRadius: 1,
+                              color: Colors.grey
+                          ),
+                          BoxShadow(
+                              offset: Offset(-1,-3),
+                              blurRadius: 3,
+                              spreadRadius: 1,
+                              color: Colors.white
+                          )
+                        ]
                     ),
                     child: CachedNetworkImage(
-                      imageUrl: booksList[index].cover,
+                      imageUrl: refundModels[index].bookModel.cover,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -668,11 +1106,11 @@ class _HistoryState extends State<History> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4, bottom: 8),
                   child: Text(
-                    booksList[index].title,
+                    refundModels[index].bookModel.title,
                     style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 3,
@@ -688,85 +1126,4 @@ class _HistoryState extends State<History> {
     );
   }
 
-  Widget buildBottomSheet() => Container(
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Align(
-          alignment: Alignment.topRight,
-          child: IconButton(
-            onPressed: ()=> Navigator.of(context).pop(),
-            icon: const Icon(
-              Icons.close,
-              size: 40,
-              color: Colors.black,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16,),
-        const Text(
-          'ที่อยู่สำหรับจัดส่ง',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 24
-          ),
-        ),
-        const SizedBox(height: 8,),
-        const Divider(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'อาคาร ห้องสมุดแห่งหนึ่ง',
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18
-                      ),
-                    ),
-                    Text(
-                      'เบอร์โทร 012-3456789',
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18
-                      ),
-                    ),
-                    Text(
-                      '12/345 ถนนพงพัน ตำบลเพรียบพร้อม อำเภอตากน้อย จังหวัดพัทลุง 83456',
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: (){},
-              icon: const Icon(
-                Icons.copy,
-                size: 30,
-                color: Colors.grey,
-              ),
-              tooltip: 'Copied!',
-
-            ),
-          ],
-        )
-      ],
-    ),
-  );
 }

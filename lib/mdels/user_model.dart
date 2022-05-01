@@ -1,13 +1,17 @@
 import 'dart:convert';
 
+import 'package:sulib/mdels/address.dart';
+
 class UserModel {
   final String name;
   final String email;
   final String password;
+  List<Address>? address;
   UserModel({
     required this.name,
     required this.email,
     required this.password,
+    this.address
   });
 
   Map<String, dynamic> toMap() {
@@ -15,6 +19,7 @@ class UserModel {
       'name': name,
       'email': email,
       'password': password,
+      'address' : address
     };
   }
 
@@ -23,6 +28,7 @@ class UserModel {
       name: map['name'] ?? '',
       email: map['email'] ?? '',
       password: map['password'] ?? '',
+      address: (map ['address'] != null) ? List<Address>.from(map["address"].map((x) => Address.fromMap(x))) : []
     );
   }
 

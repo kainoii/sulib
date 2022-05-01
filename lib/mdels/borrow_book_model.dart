@@ -23,7 +23,7 @@ class BorrowBookModel {
       'startDate': startDate,
       'endDate': endDate,
       'status': status,
-      'review': review?.toMapReview()
+      'review': review?.toMap()
     };
   }
 

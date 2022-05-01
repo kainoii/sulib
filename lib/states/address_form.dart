@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:sulib/controller/auth_controller.dart';
+import 'package:sulib/controller/user_controller.dart';
 import 'package:sulib/mdels/address.dart';
+import 'package:sulib/services/user_service.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/utility/my_dialog.dart';
 
@@ -51,9 +55,6 @@ class _AddressFormState extends State<AddressForm>{
 
   _AddressFormState({required this.addressUser});
 
-  bool isSetDefault = true;
-
-
   @override
   void initState() {
     for (int i = 0; i < focusNode.length; i++) {
@@ -68,7 +69,7 @@ class _AddressFormState extends State<AddressForm>{
   setAddressForm() {
     if (addressUser != null) {
       controllerFirstName = TextEditingController(text: addressUser!.firstName);
-      controllerLastName = TextEditingController(text: addressUser!.lastname);
+      controllerLastName = TextEditingController(text: addressUser!.lastName);
       controllerPhone = TextEditingController(text: addressUser!.phone);
       controllerBuilding = TextEditingController(text: addressUser!.building);
       controllerAddressNumber = TextEditingController(text: addressUser!.addressNumber);
@@ -116,6 +117,11 @@ class _AddressFormState extends State<AddressForm>{
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -126,19 +132,19 @@ class _AddressFormState extends State<AddressForm>{
         onTap: ()=> FocusScope.of(context).unfocus(),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: buildBodyFormAddress()
+          child: buildBodyFormAddress(context)
         ),
       ),
     );
   }
 
-  Widget buildBodyFormAddress() {
+  Widget buildBodyFormAddress(BuildContext context) {
     return ListView(
       shrinkWrap: true,
       children: [
         const SizedBox(height: 16,),
         buildTitle(),
-        buildForm(),
+        buildForm(context),
         const SizedBox(height: 32,),
       ],
     );
@@ -157,7 +163,7 @@ class _AddressFormState extends State<AddressForm>{
     ),
   );
 
-  Widget buildForm()=> Form(
+  Widget buildForm(BuildContext context)=> Form(
     key: formKey,
     child: Column(
       children: [
@@ -311,7 +317,7 @@ class _AddressFormState extends State<AddressForm>{
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return "* กรุณากรอก เบอร์โทร";
-                } else if (value.contains(RegExp(r'^[0-9]+$'))) {
+                } else if (!value.contains(RegExp(r'^[0-9]+$'))) {
                   return "* กรุณากรอก เบอร์โทร ให้ถูกต้อง";
                 }
                 return null;
@@ -753,72 +759,34 @@ class _AddressFormState extends State<AddressForm>{
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.done),
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 16),
-          child: CheckboxListTile(
-            contentPadding: const EdgeInsets.symmetric(vertical: 1),
-            value: addressUser != null ? addressUser!.isDefault: isSetDefault,
-            activeColor: Colors.green,
-            onChanged: (value) {
-              if (addressUser != null) {
-                setState(() {
-                  addressUser!.isDefault = value!;
-                });
-              } else {
-                setState(() {
-                  isSetDefault = value!;
-                });
+
+        (addressUser != null)
+        ? GetBuilder<UserController>(
+          builder: (controller) => checkBoxForm(
+              opacity: (addressUser!.isDefault) ? 0.5 : 1,
+              title: 'ตั้งค่าที่อยู่นี้เป็นสถานที่ตั้งตั้น',
+              value: controller.isSetDefaultAddressForm,
+              onChanged: (value) {
+              if (!addressUser!.isDefault) {
+                  controller.isSetDefaultAddressForm = value!;
+                }
               }
-            },
-            title: const Text(
-              'ตั้งค่าที่อยู่นี้เป็นสถานที่ตั้งตั้น',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-            controlAffinity: ListTileControlAffinity.leading,
+          ),
+        )
+        : GetBuilder<UserController>(
+          builder: (controller) => checkBoxForm(
+              opacity: (controller.user.address!.isEmpty) ? 0.5 : 1,
+              title: 'ตั้งค่าที่อยู่นี้เป็นสถานที่ตั้งตั้น',
+              value: controller.isSetDefaultAddressForm,
+              onChanged: (value) {
+                if (controller.user.address!.isNotEmpty) {
+                  controller.isSetDefaultAddressForm = value!;
+                }
+              }
           ),
         ),
 
-        addressUser != null
-        ? Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 16),
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.all(16),
-              primary: Colors.red,
-              minimumSize: const Size.fromHeight(50),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)
-              ),
-
-            ),
-            icon: const Icon(
-              Icons.delete_forever,
-              color: Colors.white,
-              size: 24,
-            ),
-            label: const Text(
-              "ลบสถานที่",
-              style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20,
-                  color: Colors.white
-              ),
-            ),
-            onPressed: () async {
-              MyDialog(context: context).warningDialog(
-                  title: 'ต้องการบันทึกสถานที่นี้ใช่ไหม',
-                  okFunc: ()=>Navigator.of(context).pop()
-              );
-              //delete Address then pop to Previous Screen
-              // Navigator.of(context).pop();
-            },
-          ),
-        )
-        : Container(),
+        deleteAddressButton(),
 
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
@@ -844,11 +812,19 @@ class _AddressFormState extends State<AddressForm>{
             ),
           ),
           onPressed: () async {
+            FocusScope.of(context).unfocus();
             if (formKey.currentState!.validate()) {
               // setAddressUser();
               MyDialog(context: context).warningDialog(
                 title: 'คุณต้องการบันทึกสถานที่นี้ใช่ไหม',
-                okFunc: ()=>Navigator.of(context).pop()
+                okFunc: () async {
+                  Navigator.of(context).pop();
+                  if (addressUser != null) {
+                    await updateAddress();
+                  } else {
+                    await insertAddress();
+                  }
+                }
               );
             }
           },
@@ -857,4 +833,159 @@ class _AddressFormState extends State<AddressForm>{
     ),
   );
 
+  Widget checkBoxForm (
+      {required double opacity,
+          required String title,
+          required bool value,
+          required ValueChanged<bool?> onChanged}) => Container(
+    padding: const EdgeInsets.only(top: 8, bottom: 16),
+    child: Opacity(
+      opacity: opacity,
+      child: CheckboxListTile(
+        contentPadding: const EdgeInsets.all(8),
+        value: value,
+        activeColor: Colors.green,
+        onChanged: onChanged,
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        controlAffinity: ListTileControlAffinity.leading,
+      )
+    )
+  );
+
+  Widget deleteAddressButton() {
+    if (addressUser != null) {
+      if (UserController.instance.user.address!.length > 1) {
+        if (!addressUser!.isDefault) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 16),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+                primary: Colors.red,
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)
+                ),
+              ),
+              icon: const Icon(
+                Icons.delete_forever,
+                color: Colors.white,
+                size: 24,
+              ),
+              label: const Text(
+                "ลบสถานที่",
+                style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    color: Colors.white
+                ),
+              ),
+              onPressed: () async{
+                FocusScope.of(context).unfocus();
+                MyDialog(context: context).warningDialog(
+                    title: 'ต้องการลบที่อยู่นี้ใช่ไหม',
+                    okFunc: () async{
+                      await deleteAddress();
+                      Navigator.of(context).pop();
+                    }
+                );
+              },
+            ),
+          );
+        }
+      }
+    }
+    return Container();
+  }
+
+  insertAddress() async {
+
+    await verifyDefaultAddress();
+
+    Address address = Address(
+        firstName: controllerFirstName.text.trim(),
+        lastName: controllerLastName.text.trim(),
+        phone: controllerPhone.text.trim(),
+        building: (controllerBuilding.text.trim().isNotEmpty) ? controllerBuilding.text.trim() : null,
+        addressNumber: controllerAddressNumber.text.trim(),
+        moo: (controllerMoo.text.trim().isNotEmpty) ? controllerMoo.text.trim() : null,
+        soi: (controllerSoi.text.trim().isNotEmpty) ? controllerSoi.text.trim() : null,
+        street: (controllerStreet.text.trim().isNotEmpty) ? controllerStreet.text.trim() : null,
+        district: controllerDistrict.text.trim(),
+        subDistrict: controllerSubDistrict.text.trim(),
+        province: controllerProvince.text.trim(),
+        zipCode: controllerZipCode.text.trim(),
+        isDefault: UserController.instance.isSetDefaultAddressForm
+    );
+
+    UserController.instance.insertAddress(address);
+    String userId = AuthController.instance.getUserId();
+    DatabaseService().insertAddress(userId, address).then((value) => Get.back());
+    // userModelProvider.insertAddress(address);
+    // userModelProvider.insertAddressWithFirebase(address: address).then((value) => Navigator.of(context).pop());
+
+  }
+
+  updateAddress() async {
+
+    await verifyDefaultAddress();
+
+    Address address = Address(
+        firstName: controllerFirstName.text.trim(),
+        lastName: controllerLastName.text.trim(),
+        phone: controllerPhone.text.trim(),
+        building: (controllerBuilding.text.trim().isNotEmpty) ? controllerBuilding.text.trim() : null,
+        addressNumber: controllerAddressNumber.text.trim(),
+        moo: (controllerMoo.text.trim().isNotEmpty) ? controllerMoo.text.trim() : null,
+        soi: (controllerSoi.text.trim().isNotEmpty) ? controllerSoi.text.trim() : null,
+        street: (controllerStreet.text.trim().isNotEmpty) ? controllerStreet.text.trim() : null,
+        district: controllerDistrict.text.trim(),
+        subDistrict: controllerSubDistrict.text.trim(),
+        province: controllerProvince.text.trim(),
+        zipCode: controllerZipCode.text.trim(),
+        isDefault: UserController.instance.isSetDefaultAddressForm
+    );
+
+    UserController.instance.updateAddress(addressDelete: addressUser!, addressUpdate: address);
+    String userId = AuthController.instance.getUserId();
+    DatabaseService().updateAddress(userId, addressUser!, address).then((value) => Get.back());
+
+    // await userModelProvider.updateAddressWithFirebase(
+    //     previousAddress: addressUser!,
+    //     currentAddress: address
+    // ).then((value) => Navigator.of(context).pop());
+  }
+
+  deleteAddress() async {
+    if (addressUser!.isDefault) {
+      MyDialog(context: context)
+        .normalDialog('ไม่สามารถลบ \"ค่าเริ่มต้น\"', "กรุณาลองใหม่อีกครั้ง");
+    } else {
+
+      UserController.instance.removeAddress(addressUser!);
+
+      String userId = AuthController.instance.getUserId();
+      DatabaseService().deleteAddress(userId, addressUser!).then((value) => Get.back());
+
+      // await userModelProvider.deleteAddressWithFirebase(address: addressUser!);
+      //
+      // Navigator.of(context).pop();
+    }
+  }
+
+  verifyDefaultAddress() async {
+    String userId = AuthController.instance.getUserId();
+    if (addressUser != null) {
+      await UserController.instance.verifyDefaultAddress(userId: userId, addressEdited: addressUser!);
+    } else {
+      await UserController.instance.verifyDefaultAddress(userId: userId);
+    }
+  }
 }

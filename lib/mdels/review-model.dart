@@ -17,7 +17,7 @@ class ReviewModel {
     );
   }
 
-  Map<String, dynamic> toMapReview() {
+  Map<String, dynamic> toMap() {
     return {
       "rate": rate,
       "description": description,
@@ -25,6 +25,6 @@ class ReviewModel {
     };
   }
 
-  String toJson() => json.encode(toMapReview());
+  String toJson() => json.encode(toMap());
 
 }

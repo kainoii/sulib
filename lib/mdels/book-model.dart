@@ -28,7 +28,7 @@ class BookModel {
   Map<String, dynamic> toMap() {
     return {
       'cover': cover,
-      'ISBN Number': isbnNumber,
+      'ISBN number': isbnNumber,
       'Publisher': publisher,
       'author': author,
       'book category': bookCatetory,
@@ -43,7 +43,7 @@ class BookModel {
   factory BookModel.fromMap(Map<String, dynamic> map) {
     return BookModel(
       cover: map['cover'] ?? '',
-      isbnNumber: map['ISBN Number'] ?? '',
+      isbnNumber: map['ISBN number'] ?? '',
       publisher: map['Publisher'] ?? '',
       author: map['author'] ?? '',
       bookCatetory: map['book category'] ?? '',
