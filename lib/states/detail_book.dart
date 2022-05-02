@@ -1,5 +1,4 @@
 
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:sulib/controller/auth_controller.dart';
 import 'package:sulib/controller/basket_controller.dart';
 import 'package:sulib/mdels/book-model.dart';
@@ -67,7 +67,7 @@ class _DetailBookState extends State<DetailBook> {
     if (value.docs.isNotEmpty) {
       for(var item in value.docs) {
         BorrowBookModel booksReviewByUser = BorrowBookModel.fromMap(item.data());
-        if (booksReviewByUser.review!.rate != 0 && booksReviewByUser.review!.description! != "") {
+        if (booksReviewByUser.review!.rate != 0 || booksReviewByUser.review!.description! != "") {
           print('book review : ${ booksReviewByUser.review!.rate } and description = ${ booksReviewByUser.review!.description! }');
           bookForReviewList.add(booksReviewByUser);
           books.add(booksReviewByUser);
@@ -141,8 +141,7 @@ class _DetailBookState extends State<DetailBook> {
                 newDetail(title: 'Code :', detail: bookModel.bookCode),
                 newDetail(title: 'จำนวนหน้า :', detail: bookModel.numberOfPage),
                 newDetail(title: 'Detail :', detail: bookModel.detail),
-                // buildReviewWidget(),
-                buildReviewWidget2()
+                buildReviewWidget(),
 
               ],
             ),
@@ -188,7 +187,7 @@ class _DetailBookState extends State<DetailBook> {
     );
   }
 
-  Widget buildReviewWidget2() => Padding(
+  Widget buildReviewWidget() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
     child: FutureBuilder(
         future: getReviewFromThisBook(),
@@ -212,8 +211,22 @@ class _DetailBookState extends State<DetailBook> {
               return Center(
                 child: Text('Error is Occurred: ${snapshot.hasError}'),
               );
-            } else {
+            }
+            else {
               List<BorrowBookModel> reviewBookBorrowByUsers = snapshot.data!;
+              if (reviewBookBorrowByUsers.isEmpty) {
+                return Center(
+                  child: Text(
+                    'ไม่มีข้อมูลการรีวิว',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[500]
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -227,7 +240,7 @@ class _DetailBookState extends State<DetailBook> {
                       ),
                       children: [
                         TextSpan(
-                            text: '(ทั้งหมด ${ reviewBookBorrowByUsers.length } รายการ)',
+                            text: '\t\t(ทั้งหมด ${ reviewBookBorrowByUsers.length } รายการ)',
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 14,
@@ -262,48 +275,6 @@ class _DetailBookState extends State<DetailBook> {
                       );
                     },
                   ),
-
-                  // FutureBuilder(
-                  //   future: getReviewFromThisBook(),
-                  //   builder: (BuildContext context,AsyncSnapshot<List<BorrowBookModel>> snapshotReViewByUser) {
-                  //     if (!snapshotReViewByUser.hasData) {
-                  //       return const Padding(
-                  //         padding: EdgeInsets.symmetric(vertical: 16),
-                  //         child: Align(
-                  //           alignment: Alignment.center,
-                  //           child: CircularProgressIndicator(color: Colors.teal,),
-                  //         ),
-                  //       );
-                  //     }
-                  //     List<BorrowBookModel> reviewByUsers = snapshotReViewByUser.data!;
-                  //     return FutureBuilder(
-                  //       future: getUserData(reviewByUsers),
-                  //       builder: (BuildContext context, AsyncSnapshot<List<UserModel>> snapshotUser) {
-                  //         if (!snapshotUser.hasData) {
-                  //           return const Padding(
-                  //             padding: EdgeInsets.symmetric(vertical: 16),
-                  //             child: CircularProgressIndicator(color: Colors.teal,),
-                  //           );
-                  //         }
-                  //         List<UserModel> userList = snapshotUser.data!;
-                  //         return ListView.builder(
-                  //           physics: const NeverScrollableScrollPhysics(),
-                  //           shrinkWrap: true,
-                  //           primary: false,
-                  //           itemCount: reviewByUsers.length,
-                  //           itemBuilder: (context, index) {
-                  //
-                  //             BorrowBookModel reviewByUser = reviewByUsers[index];
-                  //             UserModel user = userList[index];
-                  //
-                  //             return buildReviewItems(reviewByUser, user);
-                  //           },
-                  //         );
-                  //       },
-                  //     );
-                  //   },
-                  // )
-
                 ],
               );
             }
@@ -313,19 +284,20 @@ class _DetailBookState extends State<DetailBook> {
   );
 
   Widget buildMeanReviewWidget(List<BorrowBookModel> borrowBookModels)  {
-    var average = borrowBookModels.map((e) => e.review!.rate).reduce((a, b) => a! + b!)!/ borrowBookModels.length;
+    var average = (borrowBookModels.map((e) => e.review!.rate).reduce((a, b) => a! + b!)!/ borrowBookModels.length);
     List<int> countRating = [0, 0, 0, 0, 0];
     for(var borrowBook in borrowBookModels) {
       int ratingBook = borrowBook.review!.rate!.round();
-      countRating[ratingBook-1] = ratingBook;
+      countRating[ratingBook-1]++;
     }
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+      child: Column(
         children: [
+          const SizedBox(height: 16,),
           Container(
-            height: 120,
-            width: 120,
+            height: 150,
+            width: 150,
             child: Stack(
               children: [
                 Positioned.fill(
@@ -346,11 +318,19 @@ class _DetailBookState extends State<DetailBook> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        average.toString(),
+                        "คะแนนทั้งหมด",
+                        style: const TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14
+                        ),
+                      ),
+                      Text(
+                        average.toStringAsFixed(1),
                         style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
-                            fontSize: 50
+                            fontSize: 70
                         ),
                       ),
                       Container(
@@ -378,124 +358,24 @@ class _DetailBookState extends State<DetailBook> {
               ],
             ),
           ),
-          const SizedBox(width: 16,),
-          Expanded(
-            child: Container(
-              height: 120,
-              color: Colors.redAccent,
-              child: Row(
-                children: [
-                  Text(
-                    '5',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500
-                    ),
-                  ),
-                  const SizedBox(width: 8,),
-                  Row(
-                    children: []
-                  )
-                ],
-              )
-            )
+          const SizedBox(height: 16,),
+          Container(
+            height: 130,
+            child: ListView.builder(
+              itemCount: countRating.length,
+              shrinkWrap: true,
+              primary: false,
+              reverse: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemBuilder: (context, index) {
+                return LinearRatingSummary(text: (index + 1).toString(), valueOnPercent: countRating[index]/borrowBookModels.length);
+              },
+            ),
           )
         ],
       ),
     );
   }
-
-  Widget buildReviewWidget() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(
-              'คะแนนและรีวิว',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: MyContant.black,
-              ),
-            ),
-            const SizedBox(width: 16,),
-            FutureBuilder(
-                future: getReviewFromThisBook(),
-                builder: (BuildContext context,AsyncSnapshot<List<BorrowBookModel>> snapshot) {
-                  if (!snapshot.hasData) {
-                    return Text(
-                        '( กำลังดาวน์โหลด.... )',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontStyle: FontStyle.italic,
-                        )
-                    );
-                  }
-
-                  return Text(
-                      '(ทั้งหมด ${ snapshot.data!.length } รายการ)',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        fontStyle: FontStyle.italic,
-                      )
-                  );
-                }
-            )
-          ],
-        ),
-        const SizedBox(height: 8,),
-        FutureBuilder(
-          future: getReviewFromThisBook(),
-          builder: (BuildContext context,AsyncSnapshot<List<BorrowBookModel>> snapshotReViewByUser) {
-            if (!snapshotReViewByUser.hasData) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: CircularProgressIndicator(color: Colors.teal,),
-                ),
-              );
-            }
-            List<BorrowBookModel> reviewByUsers = snapshotReViewByUser.data!;
-            return FutureBuilder(
-              future: getUserData(reviewByUsers),
-              builder: (BuildContext context, AsyncSnapshot<List<UserModel>> snapshotUser) {
-                if (!snapshotUser.hasData) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: CircularProgressIndicator(color: Colors.teal,),
-                  );
-                }
-                List<UserModel> userList = snapshotUser.data!;
-                return ListView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  primary: false,
-                  itemCount: reviewByUsers.length,
-                  itemBuilder: (context, index) {
-
-                    BorrowBookModel reviewByUser = reviewByUsers[index];
-                    UserModel user = userList[index];
-
-                    return buildReviewItems(reviewByUser, user);
-                  },
-                );
-              },
-            );
-          },
-        )
-
-      ],
-    ),
-  );
 
   Widget buildReviewItems(BorrowBookModel reviewByUser, UserModel user) {
     DateTime reviewDate = reviewByUser.review!.date!.toDate();
@@ -744,5 +624,37 @@ class _DetailBookState extends State<DetailBook> {
             });
           });
     }
+  }
+}
+
+class LinearRatingSummary extends StatelessWidget {
+
+  final String text;
+  final double valueOnPercent;
+
+  const LinearRatingSummary({Key? key, required this.text, required this.valueOnPercent}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: LinearPercentIndicator(
+        leading: Text(
+          text,
+          style: const TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.w500
+          ),
+        ),
+        barRadius: const Radius.circular(100),
+        animation: true,
+        animationDuration: 1500,
+        lineHeight: 18,
+        percent: valueOnPercent,
+        progressColor: Colors.green,
+        backgroundColor: Colors.green.shade100.withOpacity(0.5),
+      ),
+    );
   }
 }
