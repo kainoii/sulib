@@ -67,7 +67,7 @@ class _DetailBookState extends State<DetailBook> {
     if (value.docs.isNotEmpty) {
       for(var item in value.docs) {
         BorrowBookModel booksReviewByUser = BorrowBookModel.fromMap(item.data());
-        if (booksReviewByUser.review!.rate != 0 || booksReviewByUser.review!.description! != "") {
+        if (booksReviewByUser.review!.rate != 0 && booksReviewByUser.review!.description! != "") {
           print('book review : ${ booksReviewByUser.review!.rate } and description = ${ booksReviewByUser.review!.description! }');
           bookForReviewList.add(booksReviewByUser);
           books.add(booksReviewByUser);
@@ -141,7 +141,8 @@ class _DetailBookState extends State<DetailBook> {
                 newDetail(title: 'Code :', detail: bookModel.bookCode),
                 newDetail(title: 'จำนวนหน้า :', detail: bookModel.numberOfPage),
                 newDetail(title: 'Detail :', detail: bookModel.detail),
-                buildReviewWidget()
+                // buildReviewWidget(),
+                buildReviewWidget2()
 
               ],
             ),
@@ -182,6 +183,224 @@ class _DetailBookState extends State<DetailBook> {
               }
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildReviewWidget2() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+    child: FutureBuilder(
+        future: getReviewFromThisBook(),
+        builder: (BuildContext context,AsyncSnapshot<List<BorrowBookModel>> snapshot){
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(),);
+          } else if (snapshot.connectionState == ConnectionState.none) {
+            return Center(
+              child: Text(
+                'ไม่มีข้อมูลการรีวิว',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[500]
+                ),
+                textAlign: TextAlign.center,
+              ),
+            );
+          } else {
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('Error is Occurred: ${snapshot.hasError}'),
+              );
+            } else {
+              List<BorrowBookModel> reviewBookBorrowByUsers = snapshot.data!;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      text: 'คะแนนและรีวิว',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: MyContant.black,
+                      ),
+                      children: [
+                        TextSpan(
+                            text: '(ทั้งหมด ${ reviewBookBorrowByUsers.length } รายการ)',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              fontStyle: FontStyle.italic,
+                            )
+                        )
+                      ]
+                    ),
+                  ),
+                  buildMeanReviewWidget(reviewBookBorrowByUsers),
+                  const SizedBox(height: 8,),
+                  FutureBuilder(
+                    future: getUserData(reviewBookBorrowByUsers),
+                    builder: (BuildContext context, AsyncSnapshot<List<UserModel>> snapshotUser) {
+                      if (!snapshotUser.hasData) {
+                        return const Center(child: CircularProgressIndicator(color: Colors.teal,),);
+                      }
+                      List<UserModel> userList = snapshotUser.data!;
+                      return ListView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        primary: false,
+                        itemCount: reviewBookBorrowByUsers.length,
+                        itemBuilder: (context, index) {
+
+                          BorrowBookModel reviewByUser = reviewBookBorrowByUsers[index];
+                          UserModel user = userList[index];
+
+                          return buildReviewItems(reviewByUser, user);
+                        },
+                      );
+                    },
+                  ),
+
+                  // FutureBuilder(
+                  //   future: getReviewFromThisBook(),
+                  //   builder: (BuildContext context,AsyncSnapshot<List<BorrowBookModel>> snapshotReViewByUser) {
+                  //     if (!snapshotReViewByUser.hasData) {
+                  //       return const Padding(
+                  //         padding: EdgeInsets.symmetric(vertical: 16),
+                  //         child: Align(
+                  //           alignment: Alignment.center,
+                  //           child: CircularProgressIndicator(color: Colors.teal,),
+                  //         ),
+                  //       );
+                  //     }
+                  //     List<BorrowBookModel> reviewByUsers = snapshotReViewByUser.data!;
+                  //     return FutureBuilder(
+                  //       future: getUserData(reviewByUsers),
+                  //       builder: (BuildContext context, AsyncSnapshot<List<UserModel>> snapshotUser) {
+                  //         if (!snapshotUser.hasData) {
+                  //           return const Padding(
+                  //             padding: EdgeInsets.symmetric(vertical: 16),
+                  //             child: CircularProgressIndicator(color: Colors.teal,),
+                  //           );
+                  //         }
+                  //         List<UserModel> userList = snapshotUser.data!;
+                  //         return ListView.builder(
+                  //           physics: const NeverScrollableScrollPhysics(),
+                  //           shrinkWrap: true,
+                  //           primary: false,
+                  //           itemCount: reviewByUsers.length,
+                  //           itemBuilder: (context, index) {
+                  //
+                  //             BorrowBookModel reviewByUser = reviewByUsers[index];
+                  //             UserModel user = userList[index];
+                  //
+                  //             return buildReviewItems(reviewByUser, user);
+                  //           },
+                  //         );
+                  //       },
+                  //     );
+                  //   },
+                  // )
+
+                ],
+              );
+            }
+          }
+        }
+    ),
+  );
+
+  Widget buildMeanReviewWidget(List<BorrowBookModel> borrowBookModels)  {
+    var average = borrowBookModels.map((e) => e.review!.rate).reduce((a, b) => a! + b!)!/ borrowBookModels.length;
+    List<int> countRating = [0, 0, 0, 0, 0];
+    for(var borrowBook in borrowBookModels) {
+      int ratingBook = borrowBook.review!.rate!.round();
+      countRating[ratingBook-1] = ratingBook;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            height: 120,
+            width: 120,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: MyContant.primary, width: 3)
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  top: 0,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        average.toString(),
+                        style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 50
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(4.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(color: MyContant.primary, width: 3)
+                        ),
+                        child: RatingBarIndicator(
+                          rating: average,
+                          direction: Axis.horizontal,
+                          itemCount: 5,
+                          itemSize: 16,
+                          itemPadding: const EdgeInsets.symmetric(horizontal: 1),
+                          itemBuilder: (context, _) => const Icon(
+                            Icons.star,
+                            color: Colors.amber,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+          const SizedBox(width: 16,),
+          Expanded(
+            child: Container(
+              height: 120,
+              color: Colors.redAccent,
+              child: Row(
+                children: [
+                  Text(
+                    '5',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500
+                    ),
+                  ),
+                  const SizedBox(width: 8,),
+                  Row(
+                    children: []
+                  )
+                ],
+              )
+            )
+          )
         ],
       ),
     );

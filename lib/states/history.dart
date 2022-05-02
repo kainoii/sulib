@@ -54,7 +54,7 @@ class _HistoryState extends State<History> {
     final userId = 'tdXc_jWp0Axelz3zY';
 
     UserModel user = UserController.instance.user;
-    
+
     DateTime endDateTime = DateTime.now();
 
     final String user_name = user.name;
