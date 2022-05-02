@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clipboard/clipboard.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,15 +8,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:sulib/controller/auth_controller.dart';
+import 'package:sulib/controller/user_controller.dart';
 import 'package:sulib/mdels/book-model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
 import 'package:sulib/mdels/refund_model.dart';
+import 'package:sulib/mdels/user_model.dart';
 import 'package:sulib/services/user_service.dart';
 import 'package:sulib/states/show_list_recive_book.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/utility/my_dialog.dart';
-
+import 'package:http/http.dart' as http;
 
 class History extends StatefulWidget {
   const History({
@@ -42,66 +47,130 @@ class _HistoryState extends State<History> {
     // findUserAndReadBook();
   }
 
+  Future sendEmail(List<RefundModel> refundsBooks) async {
+    final serviceId = 'service_697yyoo';
+    final templateId = 'template_9p806nf';
+    final userId = '1nvoZ0x2hkYsJR-06';
+
+    UserModel user = UserController.instance.user;
+
+    DateTime endDateTime = DateTime.now();
+
+    final String user_name = user.name;
+    final String user_email = user.email;
+    final String user_address =
+        "${UserController.instance.selectAddress.getName()}\n${UserController.instance.selectAddress.phone}\n${UserController.instance.selectAddress.getAddressSummary()}";
+    String end_borrow_date = showDate(endDateTime);
+    String book_title = "";
+
+    for (int i = 0; i < refundsBooks.length; i++) {
+      if (i != (refundsBooks.length - 1)) {
+        book_title = book_title +
+            "(ISBN : ${refundsBooks[i].bookModel.isbnNumber}) => หนังสือเรื่อง : ${refundsBooks[i].bookModel.title} / ";
+      } else {
+        book_title = book_title +
+            "(ISBN : ${refundsBooks[i].bookModel.isbnNumber}) => หนังสือเรื่อง : ${refundsBooks[i].bookModel.title}";
+      }
+    }
+
+    final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
+    final response = await http.post(url,
+        headers: {
+          'origin': 'http://localhost',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'service_id': serviceId,
+          'template_id': templateId,
+          'user_id': userId,
+          'template_params': {
+            'user_name': user_name,
+            'user_email': user_email,
+            'book_title': book_title,
+            'end_borrow_date': end_borrow_date,
+            'user_address': user_address
+          }
+        }));
+    print(response.body);
+  }
+
   Future<List<BookModel>> getAllBookData(List<String> allBooksIds) async {
     List<BookModel> bookModels = [];
-    for(var bookId in allBooksIds) {
+    for (var bookId in allBooksIds) {
       BookModel bookModel = await DatabaseService().getBookById(bookId);
       bookModels.add(bookModel);
     }
     return bookModels;
   }
 
-  Future<Map<String,List<RefundModel>>> findBookRefund() async {
+  String showDate(DateTime dateTime) {
+    DateFormat dateFormat = DateFormat('dd MMMM yyyy');
+    String result = dateFormat.format(dateTime);
+    return result;
+  }
+
+  Future<Map<String, List<RefundModel>>> findBookRefund() async {
     String userId = AuthController.instance.getUserId();
-    List<BorrowUserModel> borrowUserModels = await DatabaseService().getAllBookBorrowByUser(userId);
-    List<String> allDocBookId = borrowUserModels.map((userBorrow) => userBorrow.docBook).toList();
+    List<BorrowUserModel> borrowUserModels =
+        await DatabaseService().getAllBookBorrowByUser(userId);
+    List<String> allDocBookId =
+        borrowUserModels.map((userBorrow) => userBorrow.docBook).toList();
     List<BookModel> bookModels = await getAllBookData(allDocBookId);
     List<RefundModel> refundList = [];
-    for(int i=0; i < borrowUserModels.length; i++) {
-      RefundModel refundModel = RefundModel(bookModel: bookModels[i], borrowUserModel: borrowUserModels[i]);
+    for (int i = 0; i < borrowUserModels.length; i++) {
+      RefundModel refundModel = RefundModel(
+          bookModel: bookModels[i], borrowUserModel: borrowUserModels[i]);
       refundList.add(refundModel);
     }
-    final groupsByRefund = groupBy(refundList, (RefundModel refund) => refund.borrowUserModel.borrowId);
+    final groupsByRefund = groupBy(
+        refundList, (RefundModel refund) => refund.borrowUserModel.borrowId);
     return groupsByRefund;
   }
 
-  Future<List<String>> findDocumentBookBorrowByBookId(List<String> documentBookIds) async {
+  Future<List<String>> findDocumentBookBorrowByBookId(
+      List<String> documentBookIds) async {
     List<String> documentBookBorrows = [];
     for (var docBook in documentBookIds) {
-      String documentBookBorrow = await DatabaseService().getDocumentBookBorrowById(docBook);
+      String documentBookBorrow =
+          await DatabaseService().getDocumentBookBorrowById(docBook);
       documentBookBorrows.add(documentBookBorrow);
     }
     return documentBookBorrows;
   }
 
   Future<List<String>> findDocumentUserBorrowByUserId(String userId) async {
-
-    List<String> docUserBorrows = await DatabaseService().getDocumentUserBorrowByUserId(userId);
+    List<String> docUserBorrows =
+        await DatabaseService().getDocumentUserBorrowByUserId(userId);
     return docUserBorrows;
   }
 
-  Future updateBookBorrow(String bookId, String docBookBorrow, Map<String, dynamic> data) async {
+  Future updateBookBorrow(
+      String bookId, String docBookBorrow, Map<String, dynamic> data) async {
     await DatabaseService().updateBookBorrow(bookId, docBookBorrow, data);
   }
 
-  Future updateUserBorrow(String userId, String docUserBorrow, Map<String, dynamic> data) async {
+  Future updateUserBorrow(
+      String userId, String docUserBorrow, Map<String, dynamic> data) async {
     await DatabaseService().updateUserBorrow(userId, docUserBorrow, data);
   }
 
-  Future refundAllBook(List<RefundModel> refundModels) async{
+  Future refundAllBook(List<RefundModel> refundModels) async {
     String userId = AuthController.instance.getUserId();
-    List<String> bookIds = refundModels.map((refund) => refund.borrowUserModel.docBook).toList();
-    List<String> documentBookBorrow = await findDocumentBookBorrowByBookId(bookIds);
-    List<String> documentUserBorrow = await findDocumentUserBorrowByUserId(userId);
-    Map<String, dynamic> data = {
-      'status' : false
-    };
-    for(int i=0; i < documentBookBorrow.length; i++) {
+    List<String> bookIds =
+        refundModels.map((refund) => refund.borrowUserModel.docBook).toList();
+    List<String> documentBookBorrow =
+        await findDocumentBookBorrowByBookId(bookIds);
+    List<String> documentUserBorrow =
+        await findDocumentUserBorrowByUserId(userId);
+    Map<String, dynamic> data = {'status': false};
+    for (int i = 0; i < documentBookBorrow.length; i++) {
       String bookId = refundModels[i].borrowUserModel.docBook;
       String docBookBorrow = documentBookBorrow[i];
       String docUserBorrow = documentUserBorrow[i];
-      await updateBookBorrow(bookId, docBookBorrow, data).then((value) => print('Update docBook: ${docBookBorrow[i]}'));
-      await updateUserBorrow(userId, docUserBorrow, data).then((value) => print('Update docUser: ${docUserBorrow[i]}'));
+      await updateBookBorrow(bookId, docBookBorrow, data)
+          .then((value) => print('Update docBook: ${docBookBorrow[i]}'));
+      await updateUserBorrow(userId, docUserBorrow, data)
+          .then((value) => print('Update docUser: ${docUserBorrow[i]}'));
     }
   }
 
@@ -141,7 +210,6 @@ class _HistoryState extends State<History> {
             //   bookModels.add(bookModel);
             // });
 
-  
           }
         }
 
@@ -325,98 +393,96 @@ class _HistoryState extends State<History> {
       body: ListView(
         shrinkWrap: true,
         children: [
-          const SizedBox(height: 16,),
+          const SizedBox(
+            height: 16,
+          ),
           buildBorrowButtonWidget(),
-          const SizedBox(height: 4,),
+          const SizedBox(
+            height: 4,
+          ),
           buildReserveButtonWidget(),
           buildBorrowListWidget(),
-          const SizedBox(height: 24,),
+          const SizedBox(
+            height: 24,
+          ),
         ],
       ),
     );
   }
 
   Widget buildBorrowButtonWidget() => ButtonHistoryWidget(
-    title: 'แสดงที่อยู่สำหรับคืนหนังสือ',
-    onPressed: ()=> showModalBottomSheet(
-        context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(40),
-            topRight: Radius.circular(40)
-          )
+        title: 'แสดงที่อยู่สำหรับคืนหนังสือ',
+        onPressed: () => showModalBottomSheet(
+          context: context,
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(40), topRight: Radius.circular(40))),
+          builder: (context) => buildBottomSheet(),
         ),
-        builder: (context) => buildBottomSheet(),
-      ),
-  );
+      );
 
   Widget buildReserveButtonWidget() => ButtonHistoryWidget(
-    title: 'แสดงรายการหนังสือที่จอง',
-    onPressed: ()=> Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ShowListReceiveBook()))
-  );
-  
+      title: 'แสดงรายการหนังสือที่จอง',
+      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => const ShowListReceiveBook())));
+
   Widget buildBorrowListWidget() {
-    return FutureBuilder<Map<String,List<RefundModel>>>(
-      future: findBookRefund(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(),);
-        }
-        else if (snapshot.connectionState == ConnectionState.none) {
-          return const Center(child: Text("ไม่มีรายการหนังสือที่ยืม"));
-        } else {
-          if (snapshot.hasError) {
-            //show Error
-            return Center(
-              child: RichText(
+    return FutureBuilder<Map<String, List<RefundModel>>>(
+        future: findBookRefund(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          } else if (snapshot.connectionState == ConnectionState.none) {
+            return const Center(child: Text("ไม่มีรายการหนังสือที่ยืม"));
+          } else {
+            if (snapshot.hasError) {
+              //show Error
+              return Center(
+                  child: RichText(
                 text: TextSpan(
-                  text: 'some error is occurred:\n',
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16
-                  ),
-                  children: [
-                    TextSpan(
-                      text: '${snapshot.error}',
-                      style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16
-                      )
-                    )
-                  ]
+                    text: 'some error is occurred:\n',
+                    style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16),
+                    children: [
+                      TextSpan(
+                          text: '${snapshot.error}',
+                          style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16))
+                    ]),
+              ));
+            } else {
+              final mapRefund = snapshot.data!;
+              List<List<RefundModel>> listRefundFromMap = [];
+              mapRefund.forEach((key, value) => listRefundFromMap.add(value));
+              return ListView.separated(
+                primary: false,
+                shrinkWrap: true,
+                itemCount: listRefundFromMap.length,
+                itemBuilder: (context, index) {
+                  List<RefundModel> refundModel = listRefundFromMap[index];
+                  return RefundBookItemWidget(
+                    refundModels: refundModel,
+                    onPressed: () async {
+                      dialogConfirmRefund(refundModel);
+                    },
+                  );
+                },
+                separatorBuilder: (context, index) => const SizedBox(
+                  height: 8,
                 ),
-              )
-            );
+              );
+            }
           }
-          else {
-            final mapRefund = snapshot.data!;
-            List<List<RefundModel>> listRefundFromMap = [];
-            mapRefund.forEach((key, value) => listRefundFromMap.add(value));
-            return ListView.separated(
-              primary: false,
-              shrinkWrap: true,
-              itemCount: listRefundFromMap.length,
-              itemBuilder: (context, index) {
-                List<RefundModel> refundModel = listRefundFromMap[index];
-                return RefundBookItemWidget(
-                  refundModels: refundModel,
-                  onPressed: () async{
-                    dialogConfirmRefund(refundModel);
-                  },
-                );
-              },
-              separatorBuilder: (context, index) => const SizedBox(height: 8,),
-            );
-          }
-        }
-      }
-    );
+        });
   }
 
   Widget buildBottomSheet() {
-
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -425,7 +491,7 @@ class _HistoryState extends State<History> {
           Align(
             alignment: Alignment.topRight,
             child: IconButton(
-              onPressed: ()=> Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(
                 Icons.close,
                 size: 40,
@@ -433,16 +499,17 @@ class _HistoryState extends State<History> {
               ),
             ),
           ),
-          const SizedBox(height: 16,),
+          const SizedBox(
+            height: 16,
+          ),
           const Text(
             'ที่อยู่สำหรับจัดส่ง',
             style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 24
-            ),
+                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
           ),
-          const SizedBox(height: 8,),
+          const SizedBox(
+            height: 8,
+          ),
           const Divider(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -460,24 +527,21 @@ class _HistoryState extends State<History> {
                         style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
-                            fontSize: 18
-                        ),
+                            fontSize: 18),
                       ),
                       Text(
                         'เบอร์โทร ${MyContant.addressLibrary.phone}',
                         style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
-                            fontSize: 18
-                        ),
+                            fontSize: 18),
                       ),
                       Text(
                         MyContant.addressLibrary.getAddressSummary(),
                         style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,
-                            fontSize: 16
-                        ),
+                            fontSize: 16),
                       )
                     ],
                   ),
@@ -485,7 +549,9 @@ class _HistoryState extends State<History> {
               ),
               IconButton(
                 onPressed: () {
-                  FlutterClipboard.copy(MyContant.addressLibrary.copyAddressSummary()).then((value) => print('Copied!'));
+                  FlutterClipboard.copy(
+                          MyContant.addressLibrary.copyAddressSummary())
+                      .then((value) => print('Copied!'));
                   // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("คัดลอกเรียบร้อยแล้ว"), duration: Duration(seconds: 1),));
                 },
                 icon: const Icon(
@@ -503,40 +569,37 @@ class _HistoryState extends State<History> {
   }
 
   dialogConfirmRefund(List<RefundModel> refundModels) {
-    return MyDialog(context: context)
-      .warningDialog(
+    return MyDialog(context: context).warningDialog(
         title: "คุณต้องการคืนหนังสือใช่ไหม",
-        okFunc: () async{
+        okFunc: () async {
           Navigator.of(context).pop();
           await refundAllBook(refundModels).then((value) {
             setState(() {});
           });
-        }
-    );
+          await sendEmail(refundModels);
+        });
   }
 }
 
 class RefundBookItemWidget extends StatefulWidget {
-
   final List<RefundModel> refundModels;
   final Function() onPressed;
 
-  const RefundBookItemWidget({
-    Key? key,
-    required this.refundModels,
-    required this.onPressed
-  }) : super(key: key);
+  const RefundBookItemWidget(
+      {Key? key, required this.refundModels, required this.onPressed})
+      : super(key: key);
 
   @override
-  State<RefundBookItemWidget> createState() => _RefundBookItemWidgetState(refundModels: refundModels, onPressed: onPressed);
+  State<RefundBookItemWidget> createState() => _RefundBookItemWidgetState(
+      refundModels: refundModels, onPressed: onPressed);
 }
 
 class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
-
   final List<RefundModel> refundModels;
   final Function() onPressed;
 
-  _RefundBookItemWidgetState({required this.refundModels, required this.onPressed});
+  _RefundBookItemWidgetState(
+      {required this.refundModels, required this.onPressed});
 
   bool isLoading = false;
 
@@ -569,29 +632,29 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
                     offset: Offset(1, 3),
                     blurRadius: 5,
                     spreadRadius: 1,
-                    color: Colors.grey
-                ),
+                    color: Colors.grey),
                 BoxShadow(
                     offset: Offset(-1, -3),
                     blurRadius: 5,
                     spreadRadius: 1,
-                    color: Colors.white
-                ),
-              ]
-          ),
+                    color: Colors.white),
+              ]),
           child: Column(
             children: [
               //build title in one list
               (refundModels.first.borrowUserModel.status)
-              ? Padding(
-                padding: const EdgeInsets.all(8),
-                child: buildTextCountdownWidget(diffDate.inDays)
-              )
-              : const SizedBox(height: 16,),
+                  ? Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: buildTextCountdownWidget(diffDate.inDays))
+                  : const SizedBox(
+                      height: 16,
+                    ),
 
               buildBookDetailItemWidget(refundModels),
 
-              const SizedBox(height: 12,),
+              const SizedBox(
+                height: 12,
+              ),
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -605,44 +668,46 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
                         style: const TextStyle(
                             color: Colors.grey,
                             fontWeight: FontWeight.w500,
-                            fontSize: 16
-                        ),
+                            fontSize: 16),
                       ),
                     ),
-                    (refundModels.first.borrowUserModel.status) ?
-                    Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        gradient: LinearGradient(
-                            colors: [Colors.green.shade500, Colors.green.shade700],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight
-                        ),
-                      ),
-                      child: (isLoading)
-                        ? const CircularProgressIndicator(color: Colors.green,)
-                        : ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              primary: Colors.transparent,
-                              onPrimary: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(100)
-                              ),
-                              padding:const EdgeInsets.symmetric(horizontal: 24, vertical: 4)
-                          ),
-                          onPressed: onPressed,
-                          child: const Text(
-                            'คืนหนังสือ',
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700
+                    (refundModels.first.borrowUserModel.status)
+                        ? Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(100),
+                              gradient: LinearGradient(
+                                  colors: [
+                                    Colors.green.shade500,
+                                    Colors.green.shade700
+                                  ],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight),
                             ),
-                          ),
-                        ),
-                    )
-                    : Container()
+                            child: (isLoading)
+                                ? const CircularProgressIndicator(
+                                    color: Colors.green,
+                                  )
+                                : ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                        primary: Colors.transparent,
+                                        onPrimary: Colors.white,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(100)),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 24, vertical: 4)),
+                                    onPressed: onPressed,
+                                    child: const Text(
+                                      'คืนหนังสือ',
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                          )
+                        : Container()
                   ],
                 ),
               ),
@@ -658,20 +723,14 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
       return Text(
         'เกินเวลาคืน ${-diffDate} วัน',
         style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: MyContant.dark
-        ),
+            fontSize: 24, fontWeight: FontWeight.w700, color: MyContant.dark),
       );
     }
     if (diffDate == 0) {
       return Text(
         'วันนี้วันสุดท้าย',
         style: TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.w700,
-          color: MyContant.dark
-        ),
+            fontSize: 32, fontWeight: FontWeight.w700, color: MyContant.dark),
       );
     } else {
       return RichText(
@@ -680,23 +739,18 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
               style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black
-              ),
+                  color: Colors.black),
               children: [
-                TextSpan(
-                    text: '${diffDate}',
-                    style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
-                        color: MyContant.dark
-                    )
-                ),
-                const TextSpan(
-                  text: ' วัน',
-                ),
-              ]
-          )
-      );
+            TextSpan(
+                text: '${diffDate}',
+                style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    color: MyContant.dark)),
+            const TextSpan(
+              text: ' วัน',
+            ),
+          ]));
     }
   }
 
@@ -712,7 +766,7 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         children: [
-          for (int i=0; i < refundModels.length; i++)
+          for (int i = 0; i < refundModels.length; i++)
             Container(
               height: 100,
               padding: const EdgeInsets.all(8),
@@ -723,59 +777,56 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
                       imageUrl: refundModels[i].bookModel.cover,
                       fit: BoxFit.contain,
                     ),
-                    decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                              offset: Offset(-1,-3),
-                              blurRadius: 3,
-                              spreadRadius: 1,
-                              color: Colors.white
-                          ),
-                          BoxShadow(
-                              offset: Offset(1,3),
-                              blurRadius: 3,
-                              spreadRadius: 1,
-                              color: Colors.grey.shade300
-                          )
-                        ]
-                    ),
+                    decoration: BoxDecoration(boxShadow: [
+                      BoxShadow(
+                          offset: Offset(-1, -3),
+                          blurRadius: 3,
+                          spreadRadius: 1,
+                          color: Colors.white),
+                      BoxShadow(
+                          offset: Offset(1, 3),
+                          blurRadius: 3,
+                          spreadRadius: 1,
+                          color: Colors.grey.shade300)
+                    ]),
                   ),
-                  const SizedBox(width: 16,),
+                  const SizedBox(
+                    width: 16,
+                  ),
                   Expanded(
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                refundModels[i].bookModel.title,
-                                style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.start,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8,),
-                          Text(
-                            'ISBN ${refundModels[i].bookModel.isbnNumber}',
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            refundModels[i].bookModel.title,
                             style: const TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16
-                            ),
-                            maxLines: 1,
+                                color: Colors.black,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16),
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.start,
                           ),
-                        ],
-                      )
-                  )
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 8,
+                      ),
+                      Text(
+                        'ISBN ${refundModels[i].bookModel.isbnNumber}',
+                        style: const TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ))
                 ],
               ),
             ),
@@ -790,7 +841,9 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
       child: ListView.separated(
         shrinkWrap: true,
         itemCount: refundModels.length,
-        physics: (refundModels.first.borrowUserModel.status) ? AlwaysScrollableScrollPhysics() : NeverScrollableScrollPhysics(),
+        physics: (refundModels.first.borrowUserModel.status)
+            ? AlwaysScrollableScrollPhysics()
+            : NeverScrollableScrollPhysics(),
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index) {
           return Container(
@@ -802,22 +855,18 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
               children: [
                 Expanded(
                   child: Container(
-                    decoration: const BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                              offset: Offset(1,3),
-                              blurRadius: 3,
-                              spreadRadius: 1,
-                              color: Colors.grey
-                          ),
-                          BoxShadow(
-                              offset: Offset(-1,-3),
-                              blurRadius: 3,
-                              spreadRadius: 1,
-                              color: Colors.white
-                          )
-                        ]
-                    ),
+                    decoration: const BoxDecoration(boxShadow: [
+                      BoxShadow(
+                          offset: Offset(1, 3),
+                          blurRadius: 3,
+                          spreadRadius: 1,
+                          color: Colors.grey),
+                      BoxShadow(
+                          offset: Offset(-1, -3),
+                          blurRadius: 3,
+                          spreadRadius: 1,
+                          color: Colors.white)
+                    ]),
                     child: CachedNetworkImage(
                       imageUrl: refundModels[index].bookModel.cover,
                       fit: BoxFit.contain,
@@ -831,8 +880,7 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
                     style: const TextStyle(
                         color: Colors.black,
                         fontSize: 14,
-                        fontWeight: FontWeight.w700
-                    ),
+                        fontWeight: FontWeight.w700),
                     textAlign: TextAlign.center,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
@@ -842,44 +890,40 @@ class _RefundBookItemWidgetState extends State<RefundBookItemWidget> {
             ),
           );
         },
-        separatorBuilder: (context, index) => const SizedBox(width: 8,),
+        separatorBuilder: (context, index) => const SizedBox(
+          width: 8,
+        ),
       ),
     );
   }
-
-
 }
 
-  class ButtonHistoryWidget extends StatelessWidget {
-    
-    final String title;
-    final Function() onPressed;
+class ButtonHistoryWidget extends StatelessWidget {
+  final String title;
+  final Function() onPressed;
 
-    const ButtonHistoryWidget({ Key? key, required this.title, required this.onPressed }) : super(key: key);
-  
-    @override
-    Widget build(BuildContext context) {
-      return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-    child: ElevatedButton(
-      style: ElevatedButton.styleFrom(
-          primary: MyContant.primary,
-          onPrimary: Colors.white,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8)
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          minimumSize: const Size.fromHeight(50)
-      ),
-      onPressed: onPressed,
-      child: Text(
-        title,
-        style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700
+  const ButtonHistoryWidget(
+      {Key? key, required this.title, required this.onPressed})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+            primary: MyContant.primary,
+            onPrimary: Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            minimumSize: const Size.fromHeight(50)),
+        onPressed: onPressed,
+        child: Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
       ),
-    ),
-  );
-    }
+    );
   }
+}

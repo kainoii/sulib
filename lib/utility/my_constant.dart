@@ -56,16 +56,16 @@ class MyContant {
       );
 
   static Address addressLibrary = Address(
-    firstName: 'firstname',
-    lastName: 'lastname',
-    phone: '098654321',
-    building: 'อาคารห้องสมุดแห่งหนึ่ง',
-    addressNumber: '123/45',
-    street: 'พงพัน',
-    district: 'ลาดพร้าว',
-    subDistrict: 'พหลโยธิน19',
-    province: 'กรุงเทพมหานคร',
-    zipCode: '10110'
+    firstName: 'หอสมุดพระราชวังสนามจันทร์',
+    lastName: 'สำนักหอสมุดกลางมหาวิทยาลัยศิลปากร',
+    phone: '034-255092',
+    building: 'อาคารหอสมุดพระราชวังสนามจันทร์',
+    addressNumber: '6',
+    street: 'ราชมรรคาใน',
+    district: 'เมือง',
+    subDistrict: 'สนามจันทร์',
+    province: 'นครปฐม',
+    zipCode: '73000'
   );
 
 }

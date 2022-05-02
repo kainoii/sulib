@@ -145,7 +145,7 @@ class _BasketSummaryState extends State<BasketSummary> {
             height: 16,
           ),
           Text(
-            'สรุปรายการสั่งซื้อ',
+            'สรุปรายการยืมหนังสือ',
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -395,9 +395,9 @@ class _BasketSummaryState extends State<BasketSummary> {
   }
 
   Future sendEmail(List<BookModel> books) async {
-    final serviceId = 'service_id';
-    final templateId = 'template_id';
-    final userId = 'public_key';
+    final serviceId = 'service_697yyoo';
+    final templateId = 'template_lq94msz';
+    final userId = '1nvoZ0x2hkYsJR-06';
 
     UserModel user = UserController.instance.user;
 
@@ -408,15 +408,15 @@ class _BasketSummaryState extends State<BasketSummary> {
     final String user_email = user.email;
     final String user_address =
         "${UserController.instance.selectAddress.getName()}\n${UserController.instance.selectAddress.phone}\n${UserController.instance.selectAddress.getAddressSummary()}";
-    String start_borrow_date = showDate(currentDateTime);
     String end_borrow_date = showDate(endDateTime);
+    String start_borrow_date = showDate(currentDateTime);
     String book_title = "";
 
     for (int i=0; i < books.length; i++) {
       if (i != (books.length - 1)) {
-        book_title = book_title + "(${books[i].isbnNumber}): ${books[i].title} /";
+        book_title = book_title + "(ISBN : ${books[i].isbnNumber}) => หนังสือเรื่อง : ${books[i].title} / ";
       } else {
-        book_title = book_title + "(${books[i].isbnNumber}): ${books[i].title}";
+        book_title = book_title + "(ISBN : ${books[i].isbnNumber}) => หนังสือเรื่อง : ${books[i].title} ";
       }
     }
 
@@ -434,7 +434,7 @@ class _BasketSummaryState extends State<BasketSummary> {
             'user_name': user_name,
             'user_email': user_email,
             'book_title': book_title,
-            'start_borrow_date': start_borrow_date,
+            'start_borrow_date' : start_borrow_date,
             'end_borrow_date': end_borrow_date,
             'user_address': user_address
           }

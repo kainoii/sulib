@@ -772,24 +772,27 @@ class _BorrowBookState extends State<BorrowBook> {
 
   void setAddressUser() {
     Address address = Address(
-      firstName: 'สมชาย',
+        firstName: 'สมชาย',
         lastName: 'ล่ายปี้เอ๋งเอ๋ง',
-      phone: '0874487856',
-      addressNumber: controllerAddressNumber.text.toString(),
-      building: controllerBuilding.text.isNotEmpty
-          ? controllerBuilding.text.toString()
-          : null,
-      moo: controllerMoo.text.isNotEmpty ? controllerMoo.text.toString() : null,
-      soi: controllerSoi.text.isNotEmpty ? controllerSoi.text.toString() : null,
-      street: controllerStreet.text.isNotEmpty
-          ? controllerStreet.text.toString()
-          : null,
-      district: controllerDistrict.text.toString(),
-      subDistrict: controllerSubDistrict.text.toString(),
-      province: controllerProvince.text.toString(),
-      zipCode: controllerZipCode.text.toString(),
-      isDefault: false
-    );
+        phone: '0874487856',
+        addressNumber: controllerAddressNumber.text.toString(),
+        building: controllerBuilding.text.isNotEmpty
+            ? controllerBuilding.text.toString()
+            : null,
+        moo: controllerMoo.text.isNotEmpty
+            ? controllerMoo.text.toString()
+            : null,
+        soi: controllerSoi.text.isNotEmpty
+            ? controllerSoi.text.toString()
+            : null,
+        street: controllerStreet.text.isNotEmpty
+            ? controllerStreet.text.toString()
+            : null,
+        district: controllerDistrict.text.toString(),
+        subDistrict: controllerSubDistrict.text.toString(),
+        province: controllerProvince.text.toString(),
+        zipCode: controllerZipCode.text.toString(),
+        isDefault: false);
     setState(() {
       addressUser = address;
       isSuccessFormAddress = true;
@@ -917,8 +920,7 @@ class _BorrowBookState extends State<BorrowBook> {
     return address;
   }
 
-  Future showDialogConfirm() async{
-
+  Future showDialogConfirm() async {
     setState(() {
       isLoading = true;
     });
@@ -936,20 +938,19 @@ class _BorrowBookState extends State<BorrowBook> {
       MyDialog(context: context).confirmAction(
           title: bookModel.title,
           message:
-          'เริ่ม ${showDate(currentDateTime)} \n คืน ${showDate(endDateTime)}',
+              'เริ่ม ${showDate(currentDateTime)} \n คืน ${showDate(endDateTime)}',
           urlBook: bookModel.cover,
           okFunc: () {
             Navigator.pop(context);
             processBorrowBook();
           });
-    }  else {
+    } else {
       setState(() {
         isLoading = false;
       });
       MyDialog(context: context).normalDialog(
           'หนังสือไม่ว่าง', 'กรุณากลับไปหน้าก่อนหน้าเพื่อจองหนังสือ');
     }
-
   }
 
   String showDate(DateTime dateTime) {
@@ -957,5 +958,4 @@ class _BorrowBookState extends State<BorrowBook> {
     String result = dateFormat.format(dateTime);
     return result;
   }
-
 }

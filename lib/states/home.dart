@@ -92,11 +92,11 @@ class _HomeState extends State<Home> {
 
           searchButton(),
 
-          const ShowTitle(title: 'สำหรับคุณ'),
+          const ShowTitle(title: 'หนังสือทั้งหมด'),
           newForYouListView(),
-          const ShowTitle(title: 'ยอดนิยม'),
+          const ShowTitle(title: 'หนังสือยอดนิยม'),
           newFaveritListView(),
-          const ShowTitle(title: 'มาใหม่'),
+          const ShowTitle(title: 'อ่านฉันหน่อยนะ'),
           newListView(),
         ],
       )
