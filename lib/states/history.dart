@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clipboard/clipboard.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,14 +8,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:sulib/controller/auth_controller.dart';
+import 'package:sulib/controller/user_controller.dart';
 import 'package:sulib/mdels/book-model.dart';
 import 'package:sulib/mdels/borrow_user_model.dart';
 import 'package:sulib/mdels/refund_model.dart';
+import 'package:sulib/mdels/user_model.dart';
 import 'package:sulib/services/user_service.dart';
 import 'package:sulib/states/show_list_recive_book.dart';
 import 'package:sulib/utility/my_constant.dart';
 import 'package:sulib/utility/my_dialog.dart';
+import 'package:http/http.dart' as http;
 
 
 class History extends StatefulWidget {
@@ -42,6 +48,51 @@ class _HistoryState extends State<History> {
     // findUserAndReadBook();
   }
 
+  Future sendEmail(List<RefundModel> refundsBooks) async {
+    final serviceId = 'service_buwc72s';
+    final templateId = 'template_sddiese';
+    final userId = 'tdXc_jWp0Axelz3zY';
+
+    UserModel user = UserController.instance.user;
+    
+    DateTime endDateTime = DateTime.now();
+
+    final String user_name = user.name;
+    final String user_email = user.email;
+    final String user_address =
+        "${UserController.instance.selectAddress.getName()}\n${UserController.instance.selectAddress.phone}\n${UserController.instance.selectAddress.getAddressSummary()}";
+    String end_borrow_date = showDate(endDateTime);
+    String book_title = "";
+
+    for (int i=0; i < refundsBooks.length; i++) {
+      if (i != (refundsBooks.length - 1)) {
+        book_title = book_title + "(${refundsBooks[i].bookModel.isbnNumber}): ${refundsBooks[i].bookModel.title} /";
+      } else {
+        book_title = book_title + "(${refundsBooks[i].bookModel.isbnNumber}): ${refundsBooks[i].bookModel.title}";
+      }
+    }
+
+    final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
+    final response = await http.post(url,
+        headers: {
+          'origin': 'http://localhost',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'service_id': serviceId,
+          'template_id': templateId,
+          'user_id': userId,
+          'template_params': {
+            'user_name': user_name,
+            'user_email': user_email,
+            'book_title': book_title,
+            'end_borrow_date': end_borrow_date,
+            'user_address': user_address
+          }
+        }));
+    print(response.body);
+  }
+
   Future<List<BookModel>> getAllBookData(List<String> allBooksIds) async {
     List<BookModel> bookModels = [];
     for(var bookId in allBooksIds) {
@@ -49,6 +100,12 @@ class _HistoryState extends State<History> {
       bookModels.add(bookModel);
     }
     return bookModels;
+  }
+
+  String showDate(DateTime dateTime) {
+    DateFormat dateFormat = DateFormat('dd MMMM yyyy');
+    String result = dateFormat.format(dateTime);
+    return result;
   }
 
   Future<Map<String,List<RefundModel>>> findBookRefund() async {
@@ -511,6 +568,7 @@ class _HistoryState extends State<History> {
           await refundAllBook(refundModels).then((value) {
             setState(() {});
           });
+          await sendEmail(refundModels);
         }
     );
   }

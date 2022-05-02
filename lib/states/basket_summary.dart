@@ -395,9 +395,9 @@ class _BasketSummaryState extends State<BasketSummary> {
   }
 
   Future sendEmail(List<BookModel> books) async {
-    final serviceId = 'service_id';
-    final templateId = 'template_id';
-    final userId = 'public_key';
+    final serviceId = 'service_buwc72s';
+    final templateId = 'template_i6n3vi3';
+    final userId = 'tdXc_jWp0Axelz3zY';
 
     UserModel user = UserController.instance.user;
 
